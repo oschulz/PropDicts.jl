@@ -1,1 +1,1 @@
-# PropDicts
+# PropDicts.jl
