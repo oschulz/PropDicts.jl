@@ -6,6 +6,7 @@ module PropDicts
 
 include.([
     "dictmerge.jl",
+    "varsubst.jl",
 ])
 
 end # module
