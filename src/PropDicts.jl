@@ -5,6 +5,7 @@ __precompile__(true)
 module PropDicts
 
 include.([
+    "dictmerge.jl",
 ])
 
 end # module
