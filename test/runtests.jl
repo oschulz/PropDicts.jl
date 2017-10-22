@@ -2,6 +2,4 @@
 
 import Compat.Test
 Test.@testset "Package PropDicts" begin
-    include.([
-    ])
 end

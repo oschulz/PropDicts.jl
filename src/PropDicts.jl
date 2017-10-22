@@ -4,10 +4,8 @@ __precompile__(true)
 
 module PropDicts
 
-include.([
-    "dictmerge.jl",
-    "varsubst.jl",
-    "propdict.jl",
-])
+include("dictmerge.jl")
+include("varsubst.jl")
+include("propdict.jl")
 
 end # module
