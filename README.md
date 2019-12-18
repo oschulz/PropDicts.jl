@@ -9,5 +9,9 @@
 
 ## Documentation
 
+PropDicts implements dictionaries that handle hierarchical property/value
+data, e.g. configuration data, with support for deep merging and
+variable substitution.
+
 * [Documentation for stable version](https://oschulz.github.io/PropDicts.jl/stable)
 * [Documentation for development version](https://oschulz.github.io/PropDicts.jl/dev)
