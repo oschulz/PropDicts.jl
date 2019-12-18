@@ -3,7 +3,7 @@
 export PropDict
 
 struct PropDict
-    dict::Dict{Any,Any}
+    _internal_dict::Dict{Any,Any}
 
     PropDict() = new(Dict{Any,Any}())
 
@@ -17,22 +17,27 @@ struct PropDict
 end
 
 
+_dict(p::PropDict) = getfield(p, :_internal_dict)
+
+Base.parent(p::PropDict) = _dict(p)
+
+
 import Base.==
-==(a::PropDict, b::PropDict) = a.dict == b.dict
+==(a::PropDict, b::PropDict) = _dict(a) == _dict(b)
 
 Base.convert(::Type{PropDict}, s::AbstractString) =  PropDict(JSON.parse(s))
 
-Base.print(io::IO, p::PropDict) = JSON.print(io, p.dict)
+Base.print(io::IO, p::PropDict) = JSON.print(io, _dict(p))
 
 
 function Base.merge!(p::PropDict, others::PropDict...)
-    PropDict(deepmerge!(p.dict, map(x -> x.dict, (others))...))
+    PropDict(deepmerge!(_dict(p), map(_dict, (others))...))
     p
 end
 
 
 Base.merge(p::PropDict, others::PropDict...) =
-    PropDict(deepmerge(p.dict, map(x -> x.dict, (others))...))
+    PropDict(deepmerge(_dict(p), map(_dict, (others))...))
 
 
 const integer_expr = r"^[+-]?[0-9]+$"
@@ -115,7 +120,7 @@ function Base.read(::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_
     end
 
     if trim_null
-        trim_void!(p.dict)
+        trim_void!(_dict(p))
     end
 
     p

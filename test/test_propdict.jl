@@ -12,9 +12,9 @@ using Test
 
     @test @inferred(merge(pa, pb)) isa PropDict
     pc = merge(pa, pb)
-    @test pc.dict[:foo] == 13
-    @test pc.dict[:bar] == Dict(:baz => raw"$somevar")
-    @test pc.dict[44] == "abc"
+    @test parent(pc)[:foo] == 13
+    @test parent(pc)[:bar] == Dict(:baz => raw"$somevar")
+    @test parent(pc)[44] == "abc"
 
     @test PropDicts.contains_vars(raw"fo\\$o") == true
     @test PropDicts.substitute_vars(raw"foo $bar ${baz} y", ignore_missing = true) == raw"foo $bar ${baz} y"
@@ -22,5 +22,5 @@ using Test
     s = "xyz"
     PropDicts.substitute_vars(raw"foo$(bar)x$HOME,baz", Dict("bar" => "xyz"), use_env = true)
 
-    PropDicts.substitute_vars!(pc.dict, Dict("somevar" => "xyz"))
+    PropDicts.substitute_vars!(parent(pc), Dict("somevar" => "xyz"))
 end
