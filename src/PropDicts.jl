@@ -4,6 +4,8 @@ __precompile__(true)
 
 module PropDicts
 
+import JSON
+
 include("dictmerge.jl")
 include("varsubst.jl")
 include("propdict.jl")

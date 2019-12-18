@@ -1,8 +1,5 @@
 # This file is a part of PropDicts.jl, licensed under the MIT License (MIT).
 
-using JSON
-
-
 export PropDict
 
 mutable struct PropDict
@@ -10,7 +7,7 @@ mutable struct PropDict
 
     PropDict() = new(Dict{Any,Any}())
 
-    function PropDict(dict::Associative; auto_convert::Bool = true)
+    function PropDict(dict::AbstractDict; auto_convert::Bool = true)
         if auto_convert
             new(is_props_dict(dict) ? dict : to_props_dict(dict))
         else
@@ -28,14 +25,14 @@ Base.convert(::Type{PropDict}, s::AbstractString) =  PropDict(JSON.parse(s))
 Base.print(io::IO, p::PropDict) = JSON.print(io, p.dict)
 
 
-function Base.merge!(p::PropDict, others::PropDict)
-    deepmerge!((p.dict, (x -> x.dict).(others))...)
+function Base.merge!(p::PropDict, others::PropDict...)
+    PropDict(deepmerge!(p.dict, map(x -> x.dict, (others))...))
     p
 end
 
 
-Base.merge(p::PropDict, others::PropDict) =
-    PropDict(deepmerge((p.dict, (x -> x.dict).(others))...))
+Base.merge(p::PropDict, others::PropDict...) =
+    PropDict(deepmerge(p.dict, map(x -> x.dict, (others))...))
 
 
 const integer_expr = r"^[+-]?[0-9]+$"
@@ -47,7 +44,7 @@ function is_props_dict(d::Dict{Any,Any})
             return false
         end
 
-        if isa(v, Associative)
+        if isa(v, AbstractDict)
             if !is_props_dict(v)
                 return false
             end
@@ -57,10 +54,10 @@ function is_props_dict(d::Dict{Any,Any})
     return true
 end
 
-is_props_dict(d::Associative) = false
+is_props_dict(d::AbstractDict) = false
 
 
-function to_props_dict(d::Associative)
+function to_props_dict(d::AbstractDict)
     result = Dict{Any,Any}()
 
     for (k, v) in d
@@ -68,7 +65,7 @@ function to_props_dict(d::Associative)
             k
         else
             if isa(k, String)
-                if ismatch(integer_expr, k)
+                if occursin(integer_expr, k)
                     parse(Int, k)
                 else
                     Symbol(k)
@@ -78,7 +75,7 @@ function to_props_dict(d::Associative)
             end
         end
 
-        v_new = if isa(v, Associative)
+        v_new = if isa(v, AbstractDict)
             to_props_dict(convert(Dict{Any,Any}, v))
         else
             v

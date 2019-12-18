@@ -18,21 +18,23 @@ function contains_vars(s::String)
 end
 
 
+_isalnum(c::Char) = isletter(c) || isnumeric(c)
+
 function substitute_vars(input::AbstractString, var_values::Dict{String,String} = Dict{String,String}(); use_env::Bool = false, ignore_missing::Bool = false)
     if !contains_vars(input)
         return input
     end
 
-    const out = IOBuffer()
-    const idxs = linearindices(input)
-    const from = first(idxs)
-    const to = last(idxs)
+    out = IOBuffer()
+    idxs = eachindex(input)
+    from = first(idxs)
+    to = last(idxs)
 
-    const npos = from - 1
-    const no_brace = Char(0)
+    npos = from - 1
+    no_brace = Char(0)
 
-    const open_brache_chars = ('{', '(')
-    const close_brache_chars = ('}', ')')
+    open_brache_chars = ('{', '(')
+    close_brache_chars = ('}', ')')
 
     escaped = false
     var_from = npos;
@@ -61,12 +63,12 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
                 if (pos == var_from)
                     var_from = pos + 1
                     open_brace = c
-                    close_brace = close_brache_chars[findfirst(open_brache_chars, open_brace)]
+                    close_brace = close_brache_chars[something(findfirst(isequal(open_brace), open_brache_chars), 0)]
                 else
                     throw(ArgumentError("Encountered extra \"$c\" during variable substitution in string \"$input\""))
                 end
             else
-                if !isalnum(c) && (c != '_')
+                if !all(_isalnum, c) && (c != '_')
                     if open_brace != no_brace
                         if c in close_brache_chars
                             if c == close_brace
@@ -138,11 +140,11 @@ end
 
 
 function substitute_vars!(
-    d::Associative, var_values::Dict{String,String} = Dict{String,String}();
+    d::AbstractDict, var_values::Dict{String,String} = Dict{String,String}();
     use_env::Bool = false, ignore_missing::Bool = false, recursive::Bool = true
 )
     for (k, v) in d
-        if isa(v, Associative)
+        if isa(v, AbstractDict)
             if recursive
                 substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
             end
