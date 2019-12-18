@@ -2,7 +2,7 @@
 
 export PropDict
 
-mutable struct PropDict
+struct PropDict
     dict::Dict{Any,Any}
 
     PropDict() = new(Dict{Any,Any}())
