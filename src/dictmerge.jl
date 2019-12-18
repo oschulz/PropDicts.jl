@@ -28,11 +28,22 @@ function deepmerge(d::AbstractDict, others::AbstractDict...)
 end
 
 
-function trim_void!(d::AbstractDict; recursive::Bool = true)
+
+"""
+    trim_null!(d::AbstractDict; recursive::Bool = true)
+
+Remove values equal to `nothing` from `d`.
+
+Operates recursively on values in `d` if `recursive == true`.
+"""
+function trim_null! end
+
+
+function trim_null!(d::AbstractDict; recursive::Bool = true)
     for (k, v) in d
         if isa(v, AbstractDict)
             if recursive
-                trim_void!(v, recursive = recursive)
+                trim_null!(v, recursive = recursive)
             end
         elseif typeof(v) == Nothing
             delete!(d, k)
@@ -42,5 +53,5 @@ function trim_void!(d::AbstractDict; recursive::Bool = true)
 end
 
 
-trim_void(d::AbstractDict; recursive::Bool = true) =
-    trim_void!(deepcopy(d), recursive = recursive)
+trim_null(d::AbstractDict; recursive::Bool = true) =
+    trim_null!(deepcopy(d), recursive = recursive)

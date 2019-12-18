@@ -106,7 +106,7 @@ function Base.read(::Type{PropDict}, filename::AbstractString; subst_pathvar::Bo
     end
 
     if trim_null
-        trim_void!(d)
+        trim_null!(d)
     end
 
     PropDict(d)
@@ -120,7 +120,7 @@ function Base.read(::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_
     end
 
     if trim_null
-        trim_void!(_dict(p))
+        trim_null!(_dict(p))
     end
 
     p
