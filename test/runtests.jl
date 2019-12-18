@@ -3,6 +3,7 @@
 import Test
 Test.@testset "Package PropDicts" begin
 
-# test code goes here
+include("test_varsubst.jl")
+include("test_propdict.jl")
 
 end # testset
