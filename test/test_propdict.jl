@@ -10,6 +10,10 @@ using Test
     pa = PropDict(da)
     @test parent(pa) === PropDicts._dict(pa)
 
+    @test convert(Dict, pa) === PropDicts._dict(pa)
+    @test convert(Dict{Union{Symbol,Int}}, pa) === PropDicts._dict(pa)
+    @test convert(Dict{Union{Symbol,Int},Any}, pa) === PropDicts._dict(pa)
+
     @test sort(@inferred propertynames(pa)) == [:bar, :foo]
     @test sort(propertynames(pa, true)) == [:_internal_dict, :bar, :foo]
 

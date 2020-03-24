@@ -106,6 +106,11 @@ function Base.convert(::Type{PropDict}, d::AbstractDict)
 end
 
 
+Base.convert(::Type{Dict}, p::PropDict) = _dict(p)
+Base.convert(::Type{Dict{Union{Symbol,Int}}}, p::PropDict) = _dict(p)
+Base.convert(::Type{Dict{Union{Symbol,Int},Any},}, p::PropDict) = _dict(p)
+
+
 import Base.==
 ==(a::PropDict, b::PropDict) = _dict(a) == _dict(b)
 
