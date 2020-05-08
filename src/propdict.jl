@@ -169,11 +169,13 @@ const integer_expr = r"^[+-]?[0-9]+$"
 
 
 function Base.read(::Type{PropDict}, filename::AbstractString; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false)
-    d = JSON.Parser.parsefile(filename)
+    abs_filename = abspath(filename)
+
+    d = JSON.Parser.parsefile(abs_filename)
 
     var_values = Dict{String,String}()
     if subst_pathvar
-        var_values["_"] = dirname(filename)
+        var_values["_"] = dirname(abs_filename)
     end
 
     if subst_pathvar || subst_env
