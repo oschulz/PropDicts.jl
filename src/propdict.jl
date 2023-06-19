@@ -32,10 +32,10 @@ PropDicts.trim_null!(z)
     :e => "foo", :f => "bar"
 )
 ```
-, key::Symbol) = MissingProperty(m, key)
-Non-exsisting properties can be accessed as instances of
-[`PropDicts.MissingProperty`](@ref)). These can be set up a value, this
-adds (possibly nested) `PropDict`s to their parent:
+
+Acessing non-existing properties will return instances of
+[`PropDicts.MissingProperty`](@ref)). When setting the value of missing
+properties, parent `PropDict`s are created automatically:
 
 ```julia
 z.foo.bar isa PropDicts.MissingProperty
@@ -191,9 +191,29 @@ Base.merge(p::PropDict, others::PropDict...) =
 const integer_expr = r"^[+-]?[0-9]+$"
 
 
+"""
+    readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
+    readprops(filenames::Vector{<:AbstractString}; ...)
 
+Read a [`PropDict`](@ref) from a single or multiple JSON files.
 
-function Base.read(::Type{PropDict}, filename::AbstractString; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false)
+If multiple files are given, they are merged into a single `PropDict` using
+`merge`.
+
+`subst_pathvar` controls whether `\$_` should be substituted with the
+directory path of the/each JSON file within string values (but not field
+names).
+
+`subst_env` controls whether `\$ENVVAR` should be substituted with the value of
+the each environment variable `ENVVAR` within string values (but not field
+names).
+
+`trim_null` controls whether JSON `null` values should be removed entirely.
+"""
+function readprops end
+export readprops
+
+function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     abs_filename = abspath(filename)
 
     d = JSON.Parser.parsefile(abs_filename)
@@ -204,7 +224,7 @@ function Base.read(::Type{PropDict}, filename::AbstractString; subst_pathvar::Bo
     end
 
     if subst_pathvar || subst_env
-        substitute_vars!(d, var_values, use_env = true, ignore_missing = false, recursive = true)
+        substitute_vars!(d, var_values, use_env = subst_env, ignore_missing = false, recursive = true)
     end
 
     if trim_null
@@ -215,10 +235,10 @@ function Base.read(::Type{PropDict}, filename::AbstractString; subst_pathvar::Bo
 end
 
 
-function Base.read(::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false)
+function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false)
     p = PropDict()
     for f in filenames
-        merge!(p, read(PropDict, f, subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = false))
+        merge!(p, readprops(f, subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = false))
     end
 
     if trim_null
@@ -228,6 +248,38 @@ function Base.read(::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_
     p
 end
 
+
+import Base.read
+@deprecate read(
+    ::Type{PropDict}, filename::AbstractString; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false
+) readprops(filename; subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = trim_null)
+
+@deprecate read(
+    ::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false
+) readprops(filenames; subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = trim_null)
+
+
+"""
+    writeprops(filename, p::PropDict; multiline::Bool = false, indent::Int = 4)
+
+Write [`PropDict`](@ref) `p` to JSON file `filename`.
+"""
+function writeprops end
+export writeprops
+
+function writeprops(io::IO, p::PropDict; multiline::Bool = false, indent::Int = 4)
+    if multiline
+        JSON.print(io, p, indent)
+    else
+        JSON.print(io, p)
+    end
+end
+
+function writeprops(filename::AbstractString, p::PropDict; kwargs...)
+    open(filename, "w") do io
+        writeprops(io, p; kwargs...)
+    end
+end
 
 
 """
