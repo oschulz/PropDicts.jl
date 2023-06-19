@@ -42,6 +42,10 @@ z.foo.bar isa PropDicts.MissingProperty
 z.foo.bar = 42
 z.foo.bar == 42
 ```
+
+!!! note
+
+    Like with `Base.Dict`, mutating a `PropDict` is *not* thread safe.
 """
 struct PropDict <: AbstractDict{Union{Symbol,Int},Any}
     _internal_dict::Dict{Union{Symbol,Int},Any}
