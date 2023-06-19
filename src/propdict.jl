@@ -73,6 +73,10 @@ function is_props_dict_compatible(d::Dict{Union{Symbol,Int},Any})
 end
 
 
+_convert_value(x) = x
+_convert_value(d::AbstractDict) = PropDict(d)
+
+
 Base.convert(::Type{PropDict}, d::PropDict) = d
 
 function Base.convert(::Type{PropDict}, d::AbstractDict)
@@ -143,7 +147,7 @@ Base.length(p::PropDict) = length(_dict(p))
 
 Base.getindex(p::PropDict, key) = getindex(_dict(p), key)
 
-Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), value, key)
+Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), key)
 
 Base.delete!(p::PropDict, key) = delete!(_dict(p), key)
 
