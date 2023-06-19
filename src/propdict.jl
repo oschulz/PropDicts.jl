@@ -123,9 +123,11 @@ import Base.==
     if s == :_internal_dict
         getfield(p, :_internal_dict)
     else
-        _dict(p)[s]
+        p[s]
     end
 end
+
+@inline Base.setproperty!(p::PropDict, s::Symbol, x) = p[s] = x
 
 @inline function Base.propertynames(p::PropDict, private::Bool = false)
     names = collect(filter(x -> x isa Symbol, keys(_dict(p))))
