@@ -43,6 +43,9 @@ z.foo.bar = 42
 z.foo.bar == 42
 ```
 
+`PropDict`s can be read/written to/from JSON files using
+[`readprops`](@ref) and [`writeprops`](@ref).
+
 !!! note
 
     Like with `Base.Dict`, mutating a `PropDict` is *not* thread safe.
