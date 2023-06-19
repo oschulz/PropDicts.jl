@@ -39,4 +39,9 @@ using Test
     PropDicts.substitute_vars(raw"foo$(bar)x$HOME,baz", Dict("bar" => "xyz"), use_env = true)
 
     PropDicts.substitute_vars!(parent(pc), Dict("somevar" => "xyz"))
+
+    xa = deepcopy(pa)
+    @test xa.a.b isa PropDicts.MissingProperty
+    @test (xa.a.b[33].c = 42) == 42
+    @test xa.a.b[33].c == 42
 end

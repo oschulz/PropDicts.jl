@@ -32,6 +32,16 @@ PropDicts.trim_null!(z)
     :e => "foo", :f => "bar"
 )
 ```
+, key::Symbol) = MissingProperty(m, key)
+Non-exsisting properties can be accessed as instances of
+[`PropDicts.MissingProperty`](@ref)). These can be set up a value, this
+adds (possibly nested) `PropDict`s to their parent:
+
+```julia
+z.foo.bar isa PropDicts.MissingProperty
+z.foo.bar = 42
+z.foo.bar == 42
+```
 """
 struct PropDict <: AbstractDict{Union{Symbol,Int},Any}
     _internal_dict::Dict{Union{Symbol,Int},Any}
@@ -145,7 +155,16 @@ end
 
 Base.length(p::PropDict) = length(_dict(p))
 
-Base.getindex(p::PropDict, key) = getindex(_dict(p), key)
+function Base.getindex(p::PropDict, key)
+    d = _dict(p)
+    if haskey(d, key)
+        d[key]
+    else
+        MissingProperty(p, key)
+    end
+end
+
+Base.get!(p::PropDict, key, default) = get!(_dict(p), key, default)
 
 Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), key)
 
@@ -207,4 +226,77 @@ function Base.read(::Type{PropDict}, filenames::Vector{<:AbstractString}; subst_
     end
 
     p
+end
+
+
+
+"""
+    struct MissingProperty
+
+An instance MissingProperty(parent, key::Symbol) represents the fact the `key`
+is missing in `parent`.
+
+Instances of `MissingProperty` support `setindex!` and `setproperty!`, this
+will create the `key` in `parent` as a [`PropDict`](@ref).
+"""
+struct MissingProperty
+    _internal_parent::Union{PropDict,MissingProperty}
+    _internal_key::Union{Symbol,Int}
+end
+
+_internal_parent(m::MissingProperty) = getfield(m, :_internal_parent)
+_internal_key(m::MissingProperty) = getfield(m, :_internal_key)
+
+MissingProperty(m::MissingProperty) = MissingProperty(_internal_parent(m), _internal_key(m))
+
+Base.getindex(@nospecialize(m::MissingProperty), @nospecialize(key)) = MissingProperty(m, key)
+
+@inline function Base.getproperty(@nospecialize(m::MissingProperty), s::Symbol)
+    if s == :_internal_parent
+        getfield(m, :_internal_parent)
+    elseif s == :_internal_key
+        getfield(m, :_internal_key)
+    else
+        m[s]
+    end
+end
+
+_get_or_create_dict(@nospecialize(d::AbstractDict)) = d
+
+function _get_or_create_dict(@nospecialize(m::MissingProperty))
+    parent_d = _get_or_create_dict(_internal_parent(m))
+    get!(parent_d, _internal_key(m), PropDict())
+end
+
+function Base.get!(m::MissingProperty, key, default)
+    @nospecialize m key default
+    get!(_get_or_create_dict(m), key, default)
+end
+
+function Base.setindex!(m::MissingProperty, value, key::Union{Symbol,Int})
+    @nospecialize m value key
+    _get_or_create_dict(m)[key] = value
+end
+
+@inline Base.setproperty!(@nospecialize(m::MissingProperty), key::Symbol, value) = m[key] = value
+
+@inline function Base.propertynames(::MissingProperty, private::Bool = false)
+    if private
+        (:_internal_parent, :internal_key)
+    else
+        ()
+    end
+end
+
+
+_show_missing_property_impl(io::IO, d::AbstractDict) = show(io, d)
+function _show_missing_property_impl(io::IO, m::MissingProperty)
+    _show_missing_property_impl(io, _internal_parent(m))
+    print(io, ".", _internal_key(m))
+end
+
+function Base.show(io::IO, m::MissingProperty)
+    print(io, "PropDicts.MissingProperty", "(")
+    _show_missing_property_impl(io, m)
+    print(io, ")")
 end
