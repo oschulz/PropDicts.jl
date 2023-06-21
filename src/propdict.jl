@@ -242,7 +242,7 @@ function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_e
 end
 
 
-function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = false, subst_env::Bool = false, trim_null::Bool = false)
+function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     p = PropDict()
     for f in filenames
         merge!(p, readprops(f, subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = false))
