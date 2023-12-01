@@ -44,4 +44,18 @@ using Test
     @test xa.a.b isa PropDicts.MissingProperty
     @test (xa.a.b[33].c = 42) == 42
     @test xa.a.b[33].c == 42
+    
+    pd = PropDict(:a => 42)
+    @test get(pd, :a, 7) == 42
+    @test pd.b isa PropDicts.MissingProperty
+    @test get(pd, :b, 7) == 7
+    @test pd.b isa PropDicts.MissingProperty
+    @test get!(pd, :b, 9) == 9
+    @test !(pd.b isa PropDicts.MissingProperty)
+    @test pd.b == 9
+
+    @test pd.c isa PropDicts.MissingProperty
+    @test pd.c.d isa PropDicts.MissingProperty
+    @test get(pd.c, :d, 5) == 5
+    @test pd.c isa PropDicts.MissingProperty
 end

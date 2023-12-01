@@ -171,6 +171,8 @@ function Base.getindex(p::PropDict, key)
     end
 end
 
+Base.get(p::PropDict, key, default) = get(_dict(p), key, default)
+
 Base.get!(p::PropDict, key, default) = get!(_dict(p), key, default)
 
 Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), key)
@@ -309,6 +311,8 @@ _internal_key(m::MissingProperty) = getfield(m, :_internal_key)
 MissingProperty(m::MissingProperty) = MissingProperty(_internal_parent(m), _internal_key(m))
 
 Base.getindex(@nospecialize(m::MissingProperty), @nospecialize(key)) = MissingProperty(m, key)
+
+Base.get(@nospecialize(m::MissingProperty), @nospecialize(key), default) = default
 
 @inline function Base.getproperty(@nospecialize(m::MissingProperty), s::Symbol)
     if s == :_internal_parent
