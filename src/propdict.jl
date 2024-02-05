@@ -71,6 +71,12 @@ _dict(p::PropDict) = getfield(p, :_internal_dict)
 Base.parent(p::PropDict) = _dict(p)
 
 
+function Functors.functor(::Type{<:PropDict}, p)
+    content, f_rec = Functors.functor(Dict, _dict(p))
+    return content, x -> PropDict(f_rec(x))
+end
+
+
 is_props_dict_compatible(d::AbstractDict) = false
 
 function is_props_dict_compatible(d::Dict{Union{Symbol,Int},Any})

@@ -4,6 +4,7 @@ __precompile__(true)
 
 module PropDicts
 
+import Functors
 import JSON
 
 include("dictmerge.jl")

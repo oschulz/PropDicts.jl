@@ -3,6 +3,8 @@
 using PropDicts
 using Test
 
+using Functors
+
 @testset "propdict" begin
     da = Dict("foo" => 11, "bar" => Dict("baz" => 42), "44" => "abc")
     @test @inferred(PropDict(da)) isa PropDict
@@ -18,6 +20,8 @@ using Test
     @test sort(propertynames(pa, true)) == [:_internal_dict, :bar, :foo]
 
     pb = PropDict(Dict("foo" => 13, :bar => PropDict(:baz => raw"$somevar")))
+
+    @test all(x -> x isa AbstractFloat, values(fmap(float, PropDict(:x => PropDict(:a => 1, :b => 2))).x))
 
     @test pa == deepcopy(pa)
     @test pa != pb
@@ -58,4 +62,6 @@ using Test
     @test pd.c.d isa PropDicts.MissingProperty
     @test get(pd.c, :d, 5) == 5
     @test pd.c isa PropDicts.MissingProperty
+
+    
 end
