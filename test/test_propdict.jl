@@ -3,6 +3,8 @@
 using PropDicts
 using Test
 
+using PropDicts: deepmerge, deepmerge!
+
 using Functors
 
 @testset "propdict" begin
@@ -11,6 +13,14 @@ using Functors
 
     pa = PropDict(da)
     @test parent(pa) === PropDicts._dict(pa)
+
+    @test @inferred(Dict(pa)) === parent(pa)
+    @test @inferred(Dict{Union{Symbol,Int},Any}(pa)) === parent(pa)
+    @test @inferred(convert(Dict, pa)) === parent(pa)
+    @test @inferred(convert(Dict{Union{Symbol,Int},Any}, pa)) === parent(pa)
+
+    @test @inferred(empty(pa)) isa PropDict
+    @test @inferred(isempty(empty(pa)))
 
     @test convert(Dict, pa) === PropDicts._dict(pa)
     @test convert(Dict{Union{Symbol,Int}}, pa) === PropDicts._dict(pa)
@@ -35,6 +45,12 @@ using Functors
     @test pc.foo == 13
     @test pc.bar == PropDict(:baz => raw"$somevar")
     @test pc[44] == "abc"
+
+    px = PropDict("foo" => 11, "bar" => PropDict("baz" => PropDict("a" => 7, "b" => 9)), "44" => "abc")
+    py = PropDict("bar" => PropDict("baz" => nothing, "baz2" => 5))
+    pz = @inferred(merge!(px, py))
+    @test pz === px
+    @test pz == Dict(:foo => 11, :bar => Dict(:baz => nothing, :baz2 => 5), 44 => "abc")
 
     @test PropDicts.contains_vars(raw"fo\\$o") == true
     @test PropDicts.substitute_vars(raw"foo $bar ${baz} y", ignore_missing = true) == raw"foo $bar ${baz} y"
@@ -61,7 +77,5 @@ using Functors
     @test pd.c isa PropDicts.MissingProperty
     @test pd.c.d isa PropDicts.MissingProperty
     @test get(pd.c, :d, 5) == 5
-    @test pd.c isa PropDicts.MissingProperty
-
-    
+    @test pd.c isa PropDicts.MissingProperty    
 end

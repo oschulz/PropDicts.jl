@@ -70,6 +70,9 @@ _dict(p::PropDict) = getfield(p, :_internal_dict)
 
 Base.parent(p::PropDict) = _dict(p)
 
+Dict(p::PropDict) = _dict(p)
+Dict{Union{Symbol,Int},Any}(p::PropDict) = _dict(p)
+
 
 function Functors.functor(::Type{<:PropDict}, p)
     content, f_rec = Functors.functor(Dict, _dict(p))
@@ -165,6 +168,7 @@ end
     end
 end
 
+Base.empty(::PropDict, ::Type{Union{Symbol,Int}}, ::Type{Any}) = PropDict()
 
 Base.length(p::PropDict) = length(_dict(p))
 
@@ -193,14 +197,9 @@ Base.iterate(p::PropDict) = iterate(_dict(p))
 Base.iterate(p::PropDict, i) = iterate(_dict(p), i)
 
 
-function Base.merge!(p::PropDict, others::PropDict...)
-    PropDict(deepmerge!(_dict(p), map(_dict, (others))...))
-    p
-end
+Base.merge!(p::PropDict, others::PropDict...) = deepmerge!(p, others...)
 
-
-Base.merge(p::PropDict, others::PropDict...) =
-    PropDict(deepmerge(_dict(p), map(_dict, (others))...))
+Base.merge(p::PropDict, others::PropDict...) = deepmerge(p, others...)
 
 
 const integer_expr = r"^[+-]?[0-9]+$"
