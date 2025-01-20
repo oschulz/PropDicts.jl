@@ -5,7 +5,7 @@ using Test
 
 using PropDicts: deepmerge, deepmerge!
 
-using Functors
+using Functors: fmap, functor
 
 @testset "propdict" begin
     da = Dict("foo" => 11, "bar" => Dict("baz" => 42), "44" => "abc")
@@ -31,6 +31,7 @@ using Functors
 
     pb = PropDict(Dict("foo" => 13, :bar => PropDict(:baz => raw"$somevar")))
 
+    @test functor(pb)[1] isa Dict
     @test all(x -> x isa AbstractFloat, values(fmap(float, PropDict(:x => PropDict(:a => 1, :b => 2))).x))
 
     @test pa == deepcopy(pa)
@@ -77,5 +78,5 @@ using Functors
     @test pd.c isa PropDicts.MissingProperty
     @test pd.c.d isa PropDicts.MissingProperty
     @test get(pd.c, :d, 5) == 5
-    @test pd.c isa PropDicts.MissingProperty    
+    @test pd.c isa PropDicts.MissingProperty
 end
