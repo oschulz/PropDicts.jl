@@ -1,6 +1,6 @@
 name = "PropDicts"
 uuid = "4dc08600-4268-439e-8673-d706fafbb426"
-version = "0.2.5"
+version = "0.2.6"
 
 [deps]
 Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
