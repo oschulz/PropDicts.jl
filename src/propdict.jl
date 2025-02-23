@@ -223,10 +223,10 @@ export readprops
 
 function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     abs_filename = abspath(filename)
-    d = if endswith(filename, ".json")
+    d = if endswith(abs_filename, ".json")
         JSON.Parser.parsefile(abs_filename)
-    elseif endswith(filename, ".yaml")
-        YAML.load_file(filename)
+    elseif endswith(abs_filename, ".yaml")
+        YAML.load_file(abs_filename)
     end
 
     var_values = Dict{String,String}()
