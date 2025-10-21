@@ -1,6 +1,6 @@
 name = "PropDicts"
 uuid = "4dc08600-4268-439e-8673-d706fafbb426"
-version = "0.2.10"
+version = "0.2.11"
 
 [deps]
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
