@@ -273,13 +273,15 @@ import Base.read
 """
     writeprops(filename, p::PropDict; multiline::Bool = false, indent::Int = 4)
 
-Write [`PropDict`](@ref) `p` to JSON file `filename`.
+Write [`PropDict`](@ref) `p` to a JSON or YAML file (determined by file extension).
 """
 function writeprops end
 export writeprops
 
-function writeprops(io::IO, p::PropDict; multiline::Bool = false, indent::Int = 4)
-    if multiline
+function writeprops(io::IO, p::PropDict; multiline::Bool = false, indent::Int = 4, format::Symbol = :json)
+    if format == :yaml
+        YAML.write(io, _dict(p))
+    elseif multiline
         JSON.print(io, p, indent)
     else
         JSON.print(io, p)
@@ -287,8 +289,14 @@ function writeprops(io::IO, p::PropDict; multiline::Bool = false, indent::Int = 
 end
 
 function writeprops(filename::AbstractString, p::PropDict; kwargs...)
+    abs_filename = abspath(filename)
+    format = if endswith(abs_filename, ".yaml") || endswith(abs_filename, ".yml")
+        :yaml
+    else
+        :json
+    end
     open(filename, "w") do io
-        writeprops(io, p; kwargs...)
+        writeprops(io, p; format=format, kwargs...)
     end
 end
 
