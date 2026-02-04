@@ -11,3 +11,5 @@ amend or remove specific parts of it.
 In addition, there is support for variable substitution, to make it possible
 to refer to environment variables and application-specific variables in
 configuration data.
+
+Reading/writing from/to JSON and YAML is supported as well.

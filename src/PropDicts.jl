@@ -4,9 +4,6 @@ __precompile__(true)
 
 module PropDicts
 
-import JSON
-import YAML
-
 include("dictmerge.jl")
 include("varsubst.jl")
 include("propdict.jl")

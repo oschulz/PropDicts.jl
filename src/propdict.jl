@@ -43,8 +43,10 @@ z.foo.bar = 42
 z.foo.bar == 42
 ```
 
-`PropDict`s can be read/written to/from JSON files using
-[`readprops`](@ref) and [`writeprops`](@ref).
+`PropDict`s can be read/written to/from JSON and YAML files using
+[`readprops`](@ref) and [`writeprops`](@ref). Note that the Julia packages
+[JSON](https://github.com/JuliaIO/JSON.jl) resp.
+[YAML](https://github.com/JuliaData/YAML.jl) need to be loaded first.
 
 !!! note
 
@@ -203,31 +205,34 @@ const integer_expr = r"^[+-]?[0-9]+$"
     readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     readprops(filenames::Vector{<:AbstractString}; ...)
 
-Read a [`PropDict`](@ref) from a single or multiple JSON files.
+Read a [`PropDict`](@ref) from a single or multiple files.
+
+`readprops` supports JSON and YAML files. Note that the Julia packages
+[JSON](https://github.com/JuliaIO/JSON.jl) resp.
+[YAML](https://github.com/JuliaData/YAML.jl) need to be loaded first.
 
 If multiple files are given, they are merged into a single `PropDict` using
 `merge`.
 
 `subst_pathvar` controls whether `\$_` should be substituted with the
-directory path of the/each JSON file within string values (but not field
+directory path of the/each file within string values (but not field
 names).
 
 `subst_env` controls whether `\$ENVVAR` should be substituted with the value of
 the each environment variable `ENVVAR` within string values (but not field
 names).
 
-`trim_null` controls whether JSON `null` values should be removed entirely.
+`trim_null` controls whether JSON/YAML `null` values should be removed
+entirely.
 """
 function readprops end
 export readprops
 
+
 function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     abs_filename = abspath(filename)
-    d = if endswith(abs_filename, ".json")
-        JSON.parsefile(abs_filename)
-    elseif endswith(abs_filename, ".yaml")
-        YAML.load_file(abs_filename)
-    end
+    format = _format_from_filename(String(abs_filename))
+    d = _read_from(Val(format), abs_filename)
 
     var_values = Dict{String,String}()
     if subst_pathvar
@@ -245,7 +250,6 @@ function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_e
     PropDict(d)
 end
 
-
 function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     p = PropDict()
     for f in filenames
@@ -257,6 +261,25 @@ function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = tr
     end
 
     p
+end
+
+function _read_from(fmt_val::Val, io::IO)
+    format = only(typeof(fmt_val).parameters)
+    if format isa Symbol
+        throw(ErrorException("Reading PropDicts from format $format requires package $format to be loaded, e.g. via `import $format`"))
+    else
+        throw(ArgumentError("Invalid input format `$format`, must be a symbol like `:JSON` or `:YAML`"))
+    end
+end
+
+function _format_from_filename(filename::String)
+    if endswith(filename, ".json")
+        return :JSON
+    elseif endswith(filename, ".yaml") || endswith(filename, ".yml")
+        return :YAML
+    else
+        throw(ArgumentError("Unsupported file format for file \"$filename\", expected a \".json\", \".yaml\" or \".yml\" file extension"))
+    end
 end
 
 
@@ -271,26 +294,41 @@ import Base.read
 
 
 """
-    writeprops(filename, p::PropDict; multiline::Bool = false, indent::Int = 4)
+    writeprops(io::IO, p::PropDict; multiline::Bool = true, indent::Int = -1)
+    writeprops(filename, p::PropDict; format = :JSON, multiline::Bool = true, indent::Int = -1)
 
 Write [`PropDict`](@ref) `p` to JSON file `filename`.
+
+`writeprops` supports JSON and YAML files. Note that the Julia packages
+[JSON](https://github.com/JuliaIO/JSON.jl) resp.
+[YAML](https://github.com/JuliaData/YAML.jl) need to be loaded first.
+
+`multiline = false` is not supported for YAML files.
+
+Use `indent = -1` for default indentation in multiline mode.
 """
 function writeprops end
 export writeprops
 
-function writeprops(io::IO, p::PropDict; multiline::Bool = false, indent::Int = 4)
-    if multiline
-        JSON.print(io, p, indent)
-    else
-        JSON.print(io, p)
+function writeprops(io::IO, p::PropDict; format = :JSON, multiline::Bool = true, indent::Integer = -1)
+    _write_to(Val(format), io, p, multiline, Int(indent))
+end
+
+function writeprops(filename::AbstractString, p::PropDict; format::Symbol = _format_from_filename(String(abspath(filename))), kwargs...)
+    open(filename, "w") do io
+        writeprops(io, p; format = format, kwargs...)
     end
 end
 
-function writeprops(filename::AbstractString, p::PropDict; kwargs...)
-    open(filename, "w") do io
-        writeprops(io, p; kwargs...)
+function _write_to(fmt_val::Val, io::IO, p::PropDict, multiline::Bool, indent::Int)
+    format = only(typeof(fmt_val).parameters)
+    if format isa Symbol
+        throw(ErrorException("Writing PropDicts to format $(format) requires package $format to be loaded, e.g. via `import $format`"))
+    else
+        throw(ArgumentError("Invalid output format `$format``, must be a symbol like `:JSON` or `:YAML`"))
     end
 end
+
 
 
 """

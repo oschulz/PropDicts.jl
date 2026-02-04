@@ -2,15 +2,15 @@ name = "PropDicts"
 uuid = "4dc08600-4268-439e-8673-d706fafbb426"
 version = "0.2.12"
 
-[deps]
+[weakdeps]
+Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
-[weakdeps]
-Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
-
 [extensions]
 PropDictsFunctorsExt = "Functors"
+PropDictsJSONExt = "JSON"
+PropDictsYAMLExt = "YAML"
 
 [compat]
 Functors = "0.3, 0.4, 0.5"
