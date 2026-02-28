@@ -185,10 +185,6 @@ Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(val
 
 Base.delete!(p::PropDict, key) = delete!(_dict(p), key)
 
-Base.convert(::Type{PropDict}, s::AbstractString) =  PropDict(JSON.parse(s))
-
-Base.print(io::IO, p::PropDict) = JSON.print(io, _dict(p))
-
 Base.iterate(p::PropDict) = iterate(_dict(p))
 Base.iterate(p::PropDict, i) = iterate(_dict(p), i)
 
