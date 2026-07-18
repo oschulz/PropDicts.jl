@@ -1,6 +1,12 @@
 # This file is a part of PropDicts.jl, licensed under the MIT License (MIT).
 
 
+"""
+    deepmerge!(d::AbstractDict, others::AbstractDict...)
+
+Merge `others` into `d` recursively: entries whose values are dicts on
+both sides are deep-merged in place, all other entries are overwritten.
+"""
 function deepmerge!(d::AbstractDict, others::AbstractDict...)
     for other in others
         for (k, v) in other
@@ -37,6 +43,12 @@ function _deepmerge_into!(result::AbstractDict, others::AbstractDict...)
     result
 end
 
+"""
+    deepmerge(d::AbstractDict, others::AbstractDict...)
+
+Non-mutating version of [`deepmerge!`](@ref): returns a new dict, the
+inputs are left unchanged.
+"""
 function deepmerge(d::AbstractDict, others::AbstractDict...)
     K = _promoted_keytype(keytype(d), others...)
     V = _promoted_valtype(valtype(d), others...)

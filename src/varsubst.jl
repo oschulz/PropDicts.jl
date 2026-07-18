@@ -83,7 +83,7 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
                     else
                         var_until = pos
                     end
-                elseif isdigit(c) && (pos == var_from)
+                elseif isnumeric(c) && (pos == var_from)
                     throw(ArgumentError("Illegal variable name, starting with a digit, during variable substitution in string \"$input\""))
                 end
             end
