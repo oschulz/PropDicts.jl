@@ -129,3 +129,69 @@ end
     @test get(pd.c, :d, 5) == 5
     @test pd.c isa PropDicts.MissingProperty
 end
+
+@testset "dict interface" begin
+    p = PropDict(:a => 1, :b => PropDict(:c => 2), 44 => "abc")
+
+    p.x = 5
+    @test p.x == 5
+    @test p._internal_dict === PropDicts._dict(p)
+    @test convert(PropDict, p) === p
+    @test p[Int8(44)] == "abc"
+    @test !PropDicts.is_props_dict_compatible(Dict("a" => 1))
+
+    @test p["a"] == 1
+    @test haskey(p, "a")
+    @test !haskey(p, "nope")
+    @test_throws KeyError p[2.5]
+    @test get(p, 2.5, :dflt) == :dflt
+
+    @test get(() -> 7, p, :nope) == 7
+    @test get(() -> 7, p, :a) == 1
+    r = get!(() -> Dict("y" => 2), p, :g)
+    @test r isa PropDict && p.g.y == 2
+    @test get!(p, :h, Dict("z" => 3)) isa PropDict
+    @test p.h.z == 3
+
+    @test getkey(p, "a", nothing) == :a
+    @test getkey(p, :nope, nothing) === nothing
+
+    @test pop!(p, :x) == 5
+    @test pop!(p, :x, :dflt) == :dflt
+    @test_throws KeyError pop!(p, :x)
+    @test delete!(p, "44") === p
+    @test !haskey(p, 44)
+
+    q = copy(p)
+    @test q isa PropDict && q == p
+    @test PropDicts._dict(q) !== PropDicts._dict(p)
+    @test sizehint!(q, 100) === q
+    @test empty!(q) === q && isempty(q)
+    @test !isempty(p)
+
+    @test @inferred(empty(p, Union{Symbol,Int}, Any)) isa PropDict
+end
+
+@testset "missing properties" begin
+    p = PropDict(:a => 1)
+    m = p.q
+    @test m isa PropDicts.MissingProperty
+    @test PropDicts.MissingProperty(m) isa PropDicts.MissingProperty
+    @test m._internal_parent === p
+    @test m._internal_key == :q
+    @test propertynames(m) == ()
+    @test propertynames(m, true) == (:_internal_parent, :_internal_key)
+
+    @test m["foo"] isa PropDicts.MissingProperty
+    @test m[7] isa PropDicts.MissingProperty
+    @test_throws KeyError m[2.5]
+
+    @test occursin(".q.r", sprint(show, p.q.r))
+
+    m.r = 42
+    @test p.q.r == 42
+
+    p2 = PropDict()
+    p2.a.b["c"]["7"] = 11
+    @test p2.a.b.c[7] == 11
+end

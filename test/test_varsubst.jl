@@ -56,4 +56,20 @@ using Test
     @test PropDicts.substitute_vars("\${x}", Dict("x" => "y")) == "y"
     @test PropDicts.substitute_vars("pre\${x}", Dict("x" => "y")) == "prey"
     @test_throws ArgumentError PropDicts.substitute_vars("\${}", Dict{String,String}())
+
+    # Escaped dollar in a string that also contains variables:
+    @test PropDicts.substitute_vars(raw"\$a $x b", Dict("x" => "1")) == raw"\$a 1 b"
+
+    # In-place substitution in dicts and arrays:
+    d = Dict("a" => raw"$x", "b" => Dict("c" => raw"${x}y"), "d" => [raw"$x", 1, [raw"$x"], Dict("e" => raw"$x")])
+    PropDicts.substitute_vars!(d, Dict("x" => "1"))
+    @test d == Dict("a" => "1", "b" => Dict("c" => "1y"), "d" => ["1", 1, ["1"], Dict("e" => "1")])
+
+    d2 = Dict("a" => raw"$x", "b" => Dict("c" => raw"$x"))
+    PropDicts.substitute_vars!(d2, Dict("x" => "1"), recursive = false)
+    @test d2 == Dict("a" => "1", "b" => Dict("c" => raw"$x"))
+
+    A = Any[raw"$x", Any[raw"$x"]]
+    PropDicts.substitute_vars!(A, Dict("x" => "1"), recursive = false)
+    @test A == Any["1", Any[raw"$x"]]
 end
