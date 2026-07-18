@@ -31,4 +31,29 @@ using Test
 
     ENV["PROPDICT_TEST_A_"] = "some-var-value"
     @test @inferred(PropDicts.substitute_vars(raw"foo$(bar)x$PROPDICT_TEST_A_,baz", Dict("bar" => "xyz"), use_env = true)) == "fooxyzxsome-var-value,baz"
+
+    # Non-ASCII strings:
+    @test PropDicts.substitute_vars("ä\$x", Dict("x" => "y")) == "äy"
+    @test PropDicts.substitute_vars("日本\${x}語", Dict("x" => "y")) == "日本y語"
+    @test PropDicts.substitute_vars("ä\${x}ö", Dict("x" => "y")) == "äyö"
+    @test PropDicts.substitute_vars("ö\$vär", Dict("vär" => "y")) == "öy"
+    @test PropDicts.substitute_vars("ö\${vär}", Dict("vär" => "y")) == "öy"
+    @test PropDicts.substitute_vars("ä\$x", Dict("x" => "ü")) == "äü"
+    @test PropDicts.substitute_vars("\$x", Dict("x" => "ü")) == "ü"
+
+    # SubString and other AbstractString input and values:
+    @test PropDicts.contains_vars(SubString("abc \$x", 5)) == true
+    @test PropDicts.substitute_vars(SubString("abc \$x def", 5), Dict("x" => "1")) == "1 def"
+
+    # Corner cases:
+    @test PropDicts.substitute_vars("a\$x", Dict("x" => "y")) == "ay"
+    @test PropDicts.substitute_vars("\$x\$y", Dict("x" => "1", "y" => "2")) == "12"
+    @test PropDicts.substitute_vars("\$", Dict{String,String}()) == "\$"
+    @test PropDicts.substitute_vars("a\$", Dict{String,String}()) == "a\$"
+    @test PropDicts.substitute_vars("a\$ b", Dict{String,String}()) == "a\$ b"
+    @test PropDicts.substitute_vars("a\$\$b", Dict{String,String}()) == "a\$\$b"
+    @test PropDicts.substitute_vars(raw"a\$x b", Dict{String,String}()) == raw"a\$x b"
+    @test PropDicts.substitute_vars("\${x}", Dict("x" => "y")) == "y"
+    @test PropDicts.substitute_vars("pre\${x}", Dict("x" => "y")) == "prey"
+    @test_throws ArgumentError PropDicts.substitute_vars("\${}", Dict{String,String}())
 end

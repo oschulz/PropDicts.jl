@@ -1,7 +1,7 @@
 # This file is a part of PropDicts.jl, licensed under the MIT License (MIT).
 
 
-function contains_vars(s::String)
+function contains_vars(s::AbstractString)
     escaped = false
     for c in s
         if c == '\\'
@@ -33,47 +33,47 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
     npos = from - 1
     no_brace = Char(0)
 
-    open_brache_chars = ('{', '(')
-    close_brache_chars = ('}', ')')
+    open_brace_chars = ('{', '(')
+    close_brace_chars = ('}', ')')
 
     escaped = false
-    var_from = npos;
-    var_until = npos;
+    var_from = npos
+    var_until = npos
     open_brace = no_brace
     close_brace = no_brace
-    pos = from;
+    pos = from
 
     while pos <= to
-        c = input[pos];
+        c = input[pos]
         if (var_from == npos)
             if c == '\\'
                 escaped = !escaped
                 print(out, c)
             else
                 if ((c == '$') && !escaped && (pos < to))
-                    var_from = pos + 1;
+                    var_from = nextind(input, pos)
                 else
                     print(out, c)
                 end
                 escaped = false
             end
-            pos += 1
+            pos = nextind(input, pos)
         else
-            if c in open_brache_chars
+            if c in open_brace_chars
                 if (pos == var_from)
-                    var_from = pos + 1
+                    var_from = nextind(input, pos)
                     open_brace = c
-                    close_brace = close_brache_chars[something(findfirst(isequal(open_brace), open_brache_chars), 0)]
+                    close_brace = close_brace_chars[something(findfirst(isequal(open_brace), open_brace_chars), 0)]
                 else
                     throw(ArgumentError("Encountered extra \"$c\" during variable substitution in string \"$input\""))
                 end
             else
-                if !all(_isalnum, c) && (c != '_')
+                if !_isalnum(c) && (c != '_')
                     if open_brace != no_brace
-                        if c in close_brache_chars
+                        if c in close_brace_chars
                             if c == close_brace
                                 var_until = pos
-                                pos += 1
+                                pos = nextind(input, pos)
                             else
                                 throw(ArgumentError("Encountered closing \"$c\" for open \"$open_brace\" during variable substitution in string \"$input\""))
                             end
@@ -81,27 +81,27 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
                             throw(ArgumentError("Encountered illegal character \"\\\" in variable name during variable substitution in string \"$input\""))
                         end
                     else
-                        var_until = pos;
+                        var_until = pos
                     end
                 elseif isdigit(c) && (pos == var_from)
                     throw(ArgumentError("Illegal variable name, starting with a digit, during variable substitution in string \"$input\""))
                 end
             end
 
-            if ( (var_until == npos) && (pos + 1 > to) )
+            if ( (var_until == npos) && (pos == to) )
                 if open_brace != no_brace
                     throw(ArgumentError("Missing \"$close_brace\" for \"\$$open_brace\" during variable substitution in string \"$input\""))
                 else
-                    pos += 1
+                    pos = nextind(input, pos)
                     var_until = pos
                 end
             end
 
             if (var_until != npos)
                 if (var_until > var_from)
-                    var_name = input[var_from : var_until - 1];
+                    var_name = input[var_from : prevind(input, var_until)]
 
-                    var_expr_from, var_expr_to = (open_brace != no_brace) ? (var_from - 2, var_until) : (var_from - 1, var_until - 1)
+                    var_expr_from, var_expr_to = (open_brace != no_brace) ? (var_from - 2, var_until) : (var_from - 1, prevind(input, var_until))
 
                     subst_value = if haskey(var_values, var_name)
                         var_values[var_name]
@@ -114,23 +114,23 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
                     end
 
                     if ((var_expr_from == from) && (var_expr_to == to))
-                        return subst_value;
+                        return subst_value
                     else
-                        print(out, subst_value);
+                        print(out, subst_value)
                     end
                 else
                     if open_brace != no_brace
                         throw(ArgumentError("Encountered illegal \"\$$open_brace$close_brace\" during variable substitution in string \"$input\""))
                     else
-                        print(out, input[pos-1], input[pos])
-                        pos += 1
+                        print(out, input[prevind(input, pos)], c)
+                        pos = nextind(input, pos)
                     end
                 end
                 var_from = npos
                 var_until = npos
                 open_brace = no_brace
             else
-                pos += 1
+                pos = nextind(input, pos)
             end
         end
     end
