@@ -191,6 +191,12 @@ end
     m.r = 42
     @test p.q.r == 42
 
+    mg = p.gets
+    @test get!(mg, :k, 5) == 5
+    @test p.gets.k == 5
+    @test get!(p.gets2, :d, Dict("x" => 1)) isa PropDict
+    @test p.gets2.d.x == 1
+
     p2 = PropDict()
     p2.a.b["c"]["7"] = 11
     @test p2.a.b.c[7] == 11
