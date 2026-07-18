@@ -40,8 +40,8 @@ PropDicts.trim_null!(z)
 )
 ```
 
-Acessing non-existing properties will return instances of
-[`PropDicts.MissingProperty`](@ref)). When setting the value of missing
+Accessing non-existing properties will return instances of
+[`PropDicts.MissingProperty`](@ref). When setting the value of missing
 properties, parent `PropDict`s are created automatically:
 
 ```julia
@@ -421,8 +421,8 @@ end
 """
     struct MissingProperty
 
-An instance MissingProperty(parent, key::Symbol) represents the fact the `key`
-is missing in `parent`.
+An instance `MissingProperty(parent, key::Union{Symbol,Int})` represents the
+fact that `key` is missing in `parent`.
 
 Instances of `MissingProperty` support `setindex!` and `setproperty!`, this
 will create the `key` in `parent` as a [`PropDict`](@ref).
