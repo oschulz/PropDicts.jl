@@ -300,6 +300,10 @@ names).
 the each environment variable `ENVVAR` within string values (but not field
 names).
 
+During substitution, `\\\$` in string values produces a literal `\$` without
+variable substitution and `\\\\` produces a literal backslash, all other
+backslashes are kept verbatim.
+
 `trim_null` controls whether JSON/YAML `null` values should be removed
 entirely.
 """

@@ -52,13 +52,24 @@ using Test
     @test PropDicts.substitute_vars("a\$", Dict{String,String}()) == "a\$"
     @test PropDicts.substitute_vars("a\$ b", Dict{String,String}()) == "a\$ b"
     @test PropDicts.substitute_vars("a\$\$b", Dict{String,String}()) == "a\$\$b"
-    @test PropDicts.substitute_vars(raw"a\$x b", Dict{String,String}()) == raw"a\$x b"
+    @test PropDicts.substitute_vars(raw"a\$x b", Dict{String,String}()) == raw"a$x b"
     @test PropDicts.substitute_vars("\${x}", Dict("x" => "y")) == "y"
     @test PropDicts.substitute_vars("pre\${x}", Dict("x" => "y")) == "prey"
     @test_throws ArgumentError PropDicts.substitute_vars("\${}", Dict{String,String}())
 
-    # Escaped dollar in a string that also contains variables:
-    @test PropDicts.substitute_vars(raw"\$a $x b", Dict("x" => "1")) == raw"\$a 1 b"
+    # Escape sequences are consumed, "\$" gives a literal "$" and "\\" a
+    # literal "\", any other backslash stays verbatim:
+    @test PropDicts.substitute_vars(raw"\$a $x b", Dict("x" => "1")) == raw"$a 1 b"
+    @test PropDicts.substitute_vars(raw"\$x", Dict("x" => "1")) == raw"$x"
+    @test PropDicts.substitute_vars(raw"\${x}", Dict("x" => "1")) == raw"${x}"
+    @test PropDicts.substitute_vars(raw"\\$x", Dict("x" => "1")) == raw"\1"
+    @test PropDicts.substitute_vars("\\\\", Dict{String,String}()) == "\\"
+    @test PropDicts.substitute_vars(raw"a\b c", Dict{String,String}()) == raw"a\b c"
+    @test PropDicts.substitute_vars(raw"C:\data\new", Dict{String,String}()) == raw"C:\data\new"
+    @test PropDicts.substitute_vars("tail\\", Dict{String,String}()) == "tail\\"
+    d_esc = Dict("a" => raw"\$x")
+    PropDicts.substitute_vars!(d_esc, Dict{String,String}())
+    @test d_esc == Dict("a" => raw"$x")
 
     # In-place substitution in dicts and arrays:
     d = Dict("a" => raw"$x", "b" => Dict("c" => raw"${x}y"), "d" => [raw"$x", 1, [raw"$x"], Dict("e" => raw"$x")])

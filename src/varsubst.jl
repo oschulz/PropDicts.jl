@@ -21,7 +21,7 @@ end
 _isalnum(c::Char) = isletter(c) || isnumeric(c)
 
 function substitute_vars(input::AbstractString, var_values::Dict{String,String} = Dict{String,String}(); use_env::Bool = false, ignore_missing::Bool = false)
-    if !contains_vars(input)
+    if !contains_vars(input) && !occursin('\\', input)
         return input
     end
 
@@ -46,16 +46,19 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
     while pos <= to
         c = input[pos]
         if (var_from == npos)
-            if c == '\\'
-                escaped = !escaped
-                print(out, c)
-            else
-                if ((c == '$') && !escaped && (pos < to))
-                    var_from = nextind(input, pos)
-                else
+            if escaped
+                if (c == '\\') || (c == '$')
                     print(out, c)
+                else
+                    print(out, '\\', c)
                 end
                 escaped = false
+            elseif c == '\\'
+                escaped = true
+            elseif (c == '$') && (pos < to)
+                var_from = nextind(input, pos)
+            else
+                print(out, c)
             end
             pos = nextind(input, pos)
         else
@@ -135,8 +138,15 @@ function substitute_vars(input::AbstractString, var_values::Dict{String,String} 
         end
     end
 
+    if escaped
+        print(out, '\\')
+    end
+
     return String(take!(out))
 end
+
+
+_needs_substitution(s::AbstractString) = contains_vars(s) || occursin('\\', s)
 
 
 function substitute_vars!(
@@ -148,7 +158,7 @@ function substitute_vars!(
             if recursive
                 substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
             end
-        elseif isa(v, AbstractString) && contains_vars(v)
+        elseif isa(v, AbstractString) && _needs_substitution(v)
             d[k] = substitute_vars(v, var_values, use_env = use_env, ignore_missing = ignore_missing)
         end
     end
@@ -165,7 +175,7 @@ function substitute_vars!(
             if recursive
                 substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
             end
-        elseif isa(v, AbstractString) && contains_vars(v)
+        elseif isa(v, AbstractString) && _needs_substitution(v)
             A[i] = substitute_vars(v, var_values, use_env = use_env, ignore_missing = ignore_missing)
         end
     end
