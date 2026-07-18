@@ -17,6 +17,9 @@ using Test
     # Extra "{" during variable substitution:
     @test_throws ArgumentError PropDicts.substitute_vars(raw"${a{}", ignore_missing = true)
 
+    # A brace after a bare variable name ends the name:
+    @test PropDicts.substitute_vars(raw"$a{b}", Dict("a" => "1")) == raw"1{b}"
+
     # Closing ")" for open "{" during variable substitution:
     @test_throws ArgumentError PropDicts.substitute_vars(raw"x${nosuchvar)y", ignore_missing = true)
 

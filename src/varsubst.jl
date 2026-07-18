@@ -20,126 +20,81 @@ end
 
 _isalnum(c::Char) = isletter(c) || isnumeric(c)
 
+_is_var_char(c::Char) = _isalnum(c) || (c == '_')
+
+_subst_error(msg::AbstractString, input::AbstractString) =
+    throw(ArgumentError("$msg during variable substitution in string \"$input\""))
+
 function substitute_vars(input::AbstractString, var_values::Dict{String,String} = Dict{String,String}(); use_env::Bool = false, ignore_missing::Bool = false)
     if !contains_vars(input) && !occursin('\\', input)
         return input
     end
 
     out = IOBuffer()
-    idxs = eachindex(input)
-    from = first(idxs)
-    to = last(idxs)
+    from = firstindex(input)
+    to = lastindex(input)
+    i = from
 
-    npos = from - 1
-    no_brace = Char(0)
+    while i <= to
+        c = input[i]
+        j = nextind(input, i)
+        if (c == '\\') && (j <= to) && (input[j] == '\\' || input[j] == '$')
+            print(out, input[j])
+            i = nextind(input, j)
+        elseif (c == '$') && (j <= to)
+            open_brace = (input[j] == '{' || input[j] == '(') ? input[j] : Char(0)
+            close_brace = (open_brace == '{') ? '}' : ')'
+            name_from = (open_brace != Char(0)) ? nextind(input, j) : j
 
-    open_brace_chars = ('{', '(')
-    close_brace_chars = ('}', ')')
-
-    escaped = false
-    var_from = npos
-    var_until = npos
-    open_brace = no_brace
-    close_brace = no_brace
-    pos = from
-
-    while pos <= to
-        c = input[pos]
-        if (var_from == npos)
-            if escaped
-                if (c == '\\') || (c == '$')
-                    print(out, c)
-                else
-                    print(out, '\\', c)
+            k = name_from
+            if open_brace != Char(0)
+                while (k <= to) && !(input[k] == '}' || input[k] == ')')
+                    ck = input[k]
+                    (ck == '{' || ck == '(') && _subst_error("Encountered extra \"$ck\"", input)
+                    (ck == '\\') && _subst_error("Encountered illegal character \"\\\" in variable name", input)
+                    k = nextind(input, k)
                 end
-                escaped = false
-            elseif c == '\\'
-                escaped = true
-            elseif (c == '$') && (pos < to)
-                var_from = nextind(input, pos)
+                (k > to) && _subst_error("Missing \"$close_brace\" for \"\$$open_brace\"", input)
+                (input[k] != close_brace) && _subst_error("Encountered closing \"$(input[k])\" for open \"$open_brace\"", input)
+                (k == name_from) && _subst_error("Encountered illegal \"\$$open_brace$close_brace\"", input)
+                var_name = input[name_from:prevind(input, k)]
+                expr_to = k
+                i_next = nextind(input, k)
             else
-                print(out, c)
+                while (k <= to) && _is_var_char(input[k])
+                    k = nextind(input, k)
+                end
+                if k == name_from
+                    print(out, '$', input[k])
+                    i = nextind(input, k)
+                    continue
+                end
+                var_name = input[name_from:prevind(input, k)]
+                expr_to = prevind(input, k)
+                i_next = k
             end
-            pos = nextind(input, pos)
+
+            isnumeric(first(var_name)) && _subst_error("Illegal variable name, starting with a digit,", input)
+
+            subst_value = if haskey(var_values, var_name)
+                var_values[var_name]
+            elseif use_env && haskey(ENV, var_name)
+                ENV[var_name]
+            elseif ignore_missing
+                input[i:expr_to]
+            else
+                _subst_error("Unknown variable \"$var_name\"", input)
+            end
+
+            if (i == from) && (i_next > to)
+                return subst_value
+            end
+            print(out, subst_value)
+            i = i_next
         else
-            if c in open_brace_chars
-                if (pos == var_from)
-                    var_from = nextind(input, pos)
-                    open_brace = c
-                    close_brace = close_brace_chars[something(findfirst(isequal(open_brace), open_brace_chars), 0)]
-                else
-                    throw(ArgumentError("Encountered extra \"$c\" during variable substitution in string \"$input\""))
-                end
-            else
-                if !_isalnum(c) && (c != '_')
-                    if open_brace != no_brace
-                        if c in close_brace_chars
-                            if c == close_brace
-                                var_until = pos
-                                pos = nextind(input, pos)
-                            else
-                                throw(ArgumentError("Encountered closing \"$c\" for open \"$open_brace\" during variable substitution in string \"$input\""))
-                            end
-                        elseif (c == '\\')
-                            throw(ArgumentError("Encountered illegal character \"\\\" in variable name during variable substitution in string \"$input\""))
-                        end
-                    else
-                        var_until = pos
-                    end
-                elseif isnumeric(c) && (pos == var_from)
-                    throw(ArgumentError("Illegal variable name, starting with a digit, during variable substitution in string \"$input\""))
-                end
-            end
-
-            if ( (var_until == npos) && (pos == to) )
-                if open_brace != no_brace
-                    throw(ArgumentError("Missing \"$close_brace\" for \"\$$open_brace\" during variable substitution in string \"$input\""))
-                else
-                    pos = nextind(input, pos)
-                    var_until = pos
-                end
-            end
-
-            if (var_until != npos)
-                if (var_until > var_from)
-                    var_name = input[var_from : prevind(input, var_until)]
-
-                    var_expr_from, var_expr_to = (open_brace != no_brace) ? (var_from - 2, var_until) : (var_from - 1, prevind(input, var_until))
-
-                    subst_value = if haskey(var_values, var_name)
-                        var_values[var_name]
-                    elseif use_env && haskey(ENV, var_name)
-                        ENV[var_name]
-                    elseif ignore_missing
-                        input[var_expr_from:var_expr_to]
-                    else
-                        throw(ArgumentError("Unknown variable \"$var_name\" during variable substitution in string \"$input\""))
-                    end
-
-                    if ((var_expr_from == from) && (var_expr_to == to))
-                        return subst_value
-                    else
-                        print(out, subst_value)
-                    end
-                else
-                    if open_brace != no_brace
-                        throw(ArgumentError("Encountered illegal \"\$$open_brace$close_brace\" during variable substitution in string \"$input\""))
-                    else
-                        print(out, input[prevind(input, pos)], c)
-                        pos = nextind(input, pos)
-                    end
-                end
-                var_from = npos
-                var_until = npos
-                open_brace = no_brace
-            else
-                pos = nextind(input, pos)
-            end
+            print(out, c)
+            i = j
         end
-    end
-
-    if escaped
-        print(out, '\\')
     end
 
     return String(take!(out))
