@@ -88,33 +88,29 @@ _convert_value(x) = x
 _convert_value(d::AbstractDict) = PropDict(d)
 
 
+_props_key(key::Symbol) = key
+_props_key(key::Int) = key
+_props_key(key::Integer) = Int(key)
+
+const integer_expr = r"^[+-]?[0-9]+$"
+
+_props_key(key::AbstractString) =
+    occursin(integer_expr, key) ? something(tryparse(Int, key), Symbol(key)) : Symbol(key)
+
+_props_key(@nospecialize key) = key
+
+
 Base.convert(::Type{PropDict}, d::PropDict) = d
 
 function Base.convert(::Type{PropDict}, d::AbstractDict)
     result = PropDict()
 
     for (k, v) in d
-        k_new = if isa(k, Symbol) || isa(k, Int)
-            k
-        else
-            if isa(k, String)
-                if occursin(integer_expr, k)
-                    parse(Int, k)
-                else
-                    Symbol(k)
-                end
-            else
-                throw(ArgumentError("Key type $(typeof(k)) is not supported for PropDict dictionaries"))
-            end
+        k_new = _props_key(k)
+        if !isa(k_new, Union{Symbol,Int})
+            throw(ArgumentError("Key type $(typeof(k)) is not supported for PropDict dictionaries"))
         end
-
-        v_new = if isa(v, AbstractDict)
-            convert(PropDict, v)
-        else
-            v
-        end
-
-        result[k_new] = v_new
+        result[k_new] = v
     end
 
     result
@@ -159,29 +155,32 @@ Base.length(p::PropDict) = length(_dict(p))
 
 function Base.getindex(p::PropDict, key)
     d = _dict(p)
-    if haskey(d, key)
-        d[key]
+    k = _props_key(key)
+    if haskey(d, k)
+        d[k]
+    elseif isa(k, Union{Symbol,Int})
+        MissingProperty(p, k)
     else
-        MissingProperty(p, key)
+        throw(KeyError(key))
     end
 end
 
-Base.get(p::PropDict, key, default) = get(_dict(p), key, default)
-Base.get(f::Base.Callable, p::PropDict, key) = get(f, _dict(p), key)
+Base.get(p::PropDict, key, default) = get(_dict(p), _props_key(key), default)
+Base.get(f::Base.Callable, p::PropDict, key) = get(f, _dict(p), _props_key(key))
 
-Base.get!(p::PropDict, key, default) = get!(() -> _convert_value(default), _dict(p), key)
-Base.get!(f::Base.Callable, p::PropDict, key) = get!(() -> _convert_value(f()), _dict(p), key)
+Base.get!(p::PropDict, key, default) = get!(() -> _convert_value(default), _dict(p), _props_key(key))
+Base.get!(f::Base.Callable, p::PropDict, key) = get!(() -> _convert_value(f()), _dict(p), _props_key(key))
 
-Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), key)
+Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), _props_key(key))
 
-Base.haskey(p::PropDict, key) = haskey(_dict(p), key)
+Base.haskey(p::PropDict, key) = haskey(_dict(p), _props_key(key))
 
-Base.getkey(p::PropDict, key, default) = getkey(_dict(p), key, default)
+Base.getkey(p::PropDict, key, default) = getkey(_dict(p), _props_key(key), default)
 
-Base.delete!(p::PropDict, key) = (delete!(_dict(p), key); p)
+Base.delete!(p::PropDict, key) = (delete!(_dict(p), _props_key(key)); p)
 
-Base.pop!(p::PropDict, key) = pop!(_dict(p), key)
-Base.pop!(p::PropDict, key, default) = pop!(_dict(p), key, default)
+Base.pop!(p::PropDict, key) = pop!(_dict(p), _props_key(key))
+Base.pop!(p::PropDict, key, default) = pop!(_dict(p), _props_key(key), default)
 
 Base.empty!(p::PropDict) = (empty!(_dict(p)); p)
 
@@ -193,12 +192,11 @@ Base.iterate(p::PropDict) = iterate(_dict(p))
 Base.iterate(p::PropDict, i) = iterate(_dict(p), i)
 
 
-Base.merge!(p::PropDict, others::PropDict...) = deepmerge!(p, others...)
+deepmerge(p::PropDict, others::AbstractDict...) = _deepmerge_into!(PropDict(), p, others...)
 
-Base.merge(p::PropDict, others::PropDict...) = deepmerge(p, others...)
+Base.merge!(p::PropDict, others::AbstractDict...) = deepmerge!(p, others...)
 
-
-const integer_expr = r"^[+-]?[0-9]+$"
+Base.merge(p::PropDict, others::AbstractDict...) = deepmerge(p, others...)
 
 
 """

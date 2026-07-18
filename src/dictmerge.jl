@@ -24,11 +24,8 @@ _promoted_valtype(V::Type, d::AbstractDict, others::AbstractDict...) =
     _promoted_valtype(promote_type(V, valtype(d)), others...)
 
 
-function deepmerge(d::AbstractDict, others::AbstractDict...)
-    K = _promoted_keytype(keytype(d), others...)
-    V = _promoted_valtype(valtype(d), others...)
-    result = empty(d, K, V)
-    for other in (d, others...)
+function _deepmerge_into!(result::AbstractDict, others::AbstractDict...)
+    for other in others
         for (k, v) in other
             if haskey(result, k) && isa(result[k], AbstractDict) && isa(v, AbstractDict)
                 result[k] = deepmerge(result[k], v)
@@ -38,6 +35,12 @@ function deepmerge(d::AbstractDict, others::AbstractDict...)
         end
     end
     result
+end
+
+function deepmerge(d::AbstractDict, others::AbstractDict...)
+    K = _promoted_keytype(keytype(d), others...)
+    V = _promoted_valtype(valtype(d), others...)
+    _deepmerge_into!(empty(d, K, V), d, others...)
 end
 
 
