@@ -167,12 +167,27 @@ function Base.getindex(p::PropDict, key)
 end
 
 Base.get(p::PropDict, key, default) = get(_dict(p), key, default)
+Base.get(f::Base.Callable, p::PropDict, key) = get(f, _dict(p), key)
 
-Base.get!(p::PropDict, key, default) = get!(_dict(p), key, default)
+Base.get!(p::PropDict, key, default) = get!(() -> _convert_value(default), _dict(p), key)
+Base.get!(f::Base.Callable, p::PropDict, key) = get!(() -> _convert_value(f()), _dict(p), key)
 
 Base.setindex!(p::PropDict, value, key) = setindex!(_dict(p), _convert_value(value), key)
 
-Base.delete!(p::PropDict, key) = delete!(_dict(p), key)
+Base.haskey(p::PropDict, key) = haskey(_dict(p), key)
+
+Base.getkey(p::PropDict, key, default) = getkey(_dict(p), key, default)
+
+Base.delete!(p::PropDict, key) = (delete!(_dict(p), key); p)
+
+Base.pop!(p::PropDict, key) = pop!(_dict(p), key)
+Base.pop!(p::PropDict, key, default) = pop!(_dict(p), key, default)
+
+Base.empty!(p::PropDict) = (empty!(_dict(p)); p)
+
+Base.copy(p::PropDict) = PropDict(copy(_dict(p)))
+
+Base.sizehint!(p::PropDict, n::Integer) = (sizehint!(_dict(p), n); p)
 
 Base.iterate(p::PropDict) = iterate(_dict(p))
 Base.iterate(p::PropDict, i) = iterate(_dict(p), i)
@@ -370,7 +385,7 @@ end
 
 @inline function Base.propertynames(::MissingProperty, private::Bool = false)
     if private
-        (:_internal_parent, :internal_key)
+        (:_internal_parent, :_internal_key)
     else
         ()
     end
