@@ -78,21 +78,10 @@ Base.Dict{Union{Symbol,Int},Any}(p::PropDict) = _dict(p)
 
 is_props_dict_compatible(d::AbstractDict) = false
 
-function is_props_dict_compatible(d::Dict{Union{Symbol,Int},Any})
-    for (k, v) in d
-        if !(isa(k, Symbol) || isa(k, Int))
-            return false
-        end
+is_props_dict_compatible(d::Dict{Union{Symbol,Int},Any}) = all(_is_compatible_value, values(d))
 
-        if isa(v, AbstractDict)
-            if !is_props_dict_compatible(v)
-                return false
-            end
-        end
-    end
-
-    return true
-end
+_is_compatible_value(@nospecialize x) = true
+_is_compatible_value(d::AbstractDict) = isa(d, PropDict)
 
 
 _convert_value(x) = x
