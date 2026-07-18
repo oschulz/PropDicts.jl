@@ -4,17 +4,8 @@
 function deepmerge!(d::AbstractDict, others::AbstractDict...)
     for other in others
         for (k, v) in other
-            if haskey(d, k)
-                v_curr = d[k]
-                if isnothing(v_curr) || isnothing(v)
-                    d[k] = v
-                else
-                    if isa(v_curr, AbstractDict)
-                        deepmerge!(v_curr, v)
-                    else
-                        d[k] = v
-                    end
-                end
+            if haskey(d, k) && isa(d[k], AbstractDict) && isa(v, AbstractDict)
+                deepmerge!(d[k], v)
             else
                 d[k] = v
             end
@@ -24,11 +15,29 @@ function deepmerge!(d::AbstractDict, others::AbstractDict...)
 end
 
 
+_promoted_keytype(K::Type) = K
+_promoted_keytype(K::Type, d::AbstractDict, others::AbstractDict...) =
+    _promoted_keytype(promote_type(K, keytype(d)), others...)
+
+_promoted_valtype(V::Type) = V
+_promoted_valtype(V::Type, d::AbstractDict, others::AbstractDict...) =
+    _promoted_valtype(promote_type(V, valtype(d)), others...)
+
+
 function deepmerge(d::AbstractDict, others::AbstractDict...)
-    K = Base.promoteK(keytype(d), others...)
-    V = Base.promoteV(valtype(d), others...)
+    K = _promoted_keytype(keytype(d), others...)
+    V = _promoted_valtype(valtype(d), others...)
     result = empty(d, K, V)
-    deepmerge!(result, d, others...)
+    for other in (d, others...)
+        for (k, v) in other
+            if haskey(result, k) && isa(result[k], AbstractDict) && isa(v, AbstractDict)
+                result[k] = deepmerge(result[k], v)
+            else
+                result[k] = v
+            end
+        end
+    end
+    result
 end
 
 
@@ -36,9 +45,9 @@ end
 """
     trim_null!(d::AbstractDict; recursive::Bool = true)
 
-Remove values equal to `nothing` from `d`.
+Remove entries with a value of `nothing` from `d`.
 
-Operates recursively on values in `d` if `recursive == true`.
+Operates recursively on nested dicts if `recursive == true`.
 """
 function trim_null! end
 
@@ -49,7 +58,7 @@ function trim_null!(d::AbstractDict; recursive::Bool = true)
             if recursive
                 trim_null!(v, recursive = recursive)
             end
-        elseif typeof(v) == Nothing
+        elseif v === nothing
             delete!(d, k)
         end
     end
@@ -57,5 +66,10 @@ function trim_null!(d::AbstractDict; recursive::Bool = true)
 end
 
 
+"""
+    trim_null(d::AbstractDict; recursive::Bool = true)
+
+Non-mutating version of [`trim_null!`](@ref), operates on a deep copy of `d`.
+"""
 trim_null(d::AbstractDict; recursive::Bool = true) =
     trim_null!(deepcopy(d), recursive = recursive)
