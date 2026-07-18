@@ -188,7 +188,7 @@ end
     @test m[7] isa PropDicts.MissingProperty
     @test_throws KeyError m[2.5]
 
-    @test occursin(".q.r", sprint(show, p.q.r))
+    @test sprint(show, p.q.r[33]) == "PropDicts.MissingProperty(<PropDict with 1 entry>.q.r[33])"
 
     m.r = 42
     @test p.q.r == 42

@@ -486,10 +486,11 @@ end
 end
 
 
-_show_missing_property_impl(io::IO, d::AbstractDict) = show(io, d)
+_show_missing_property_impl(io::IO, d::AbstractDict) = print(io, "<", summary(d), ">")
 function _show_missing_property_impl(io::IO, m::MissingProperty)
     _show_missing_property_impl(io, _internal_parent(m))
-    print(io, ".", _internal_key(m))
+    k = _internal_key(m)
+    isa(k, Symbol) ? print(io, ".", k) : print(io, "[", k, "]")
 end
 
 function Base.show(io::IO, m::MissingProperty)
