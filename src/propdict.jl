@@ -437,7 +437,10 @@ _internal_key(m::MissingProperty) = getfield(m, :_internal_key)
 
 MissingProperty(m::MissingProperty) = MissingProperty(_internal_parent(m), _internal_key(m))
 
-Base.getindex(@nospecialize(m::MissingProperty), @nospecialize(key)) = MissingProperty(m, key)
+function Base.getindex(@nospecialize(m::MissingProperty), @nospecialize(key))
+    k = _props_key(key)
+    isa(k, Union{Symbol,Int}) ? MissingProperty(m, k) : throw(KeyError(key))
+end
 
 Base.get(@nospecialize(m::MissingProperty), @nospecialize(key), default) = default
 
@@ -463,7 +466,7 @@ function Base.get!(m::MissingProperty, key, default)
     get!(_get_or_create_dict(m), key, default)
 end
 
-function Base.setindex!(m::MissingProperty, value, key::Union{Symbol,Int})
+function Base.setindex!(m::MissingProperty, value, key)
     @nospecialize m value key
     _get_or_create_dict(m)[key] = value
 end
