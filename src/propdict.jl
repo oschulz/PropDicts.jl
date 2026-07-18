@@ -4,16 +4,23 @@
 """
     PropDict <: AbstractDict{Union{Symbol,Int},Any}
 
-PropDicts is a dictionary for that supports
+A dictionary with `Symbol` and `Int` keys that supports property-based
+access and deep merging.
 
 Constructors:
 
     PropDict(dict::AbstractDict)
 
-    PropDict(key1 => value, key2 => value2, ...)
+    PropDict(key1 => value1, key2 => value2, ...)
 
-During construction, keys are automatically converted to `Symbol`s and
-`Int`s, values that are dicts are converted to `PropDict`s.
+    PropDict(key1 = value1, key2 = value2, ...)
+
+Also see [`@propdict`](@ref) for construction from named-tuple syntax.
+
+Keys are automatically converted to `Symbol`s and `Int`s: string keys that
+represent an integer become `Int`s, other string keys become `Symbol`s. The
+same conversion is applied when getting, setting or deleting entries. Values
+that are dicts are converted to `PropDict`s.
 
 `PropDict` support deep merging:
 ```julia
@@ -55,8 +62,6 @@ z.foo.bar == 42
 struct PropDict <: AbstractDict{Union{Symbol,Int},Any}
     _internal_dict::Dict{Union{Symbol,Int},Any}
 
-    PropDict() = new(Dict{Union{Symbol,Int},Any}())
-
     PropDict(dict::PropDict) = new(_dict(dict))
 
     PropDict(dict::Dict{Union{Symbol,Int},Any}) = is_props_dict_compatible(dict) ? new(dict) : convert(PropDict, dict)
@@ -65,7 +70,75 @@ export PropDict
 
 PropDict(dict::AbstractDict) = convert(PropDict, dict)
 
-PropDict(keys_and_values::Pair...) = PropDict(Dict(keys_and_values...))
+function PropDict(keys_and_values::Pair...; kwargs...)
+    p = PropDict(Dict{Union{Symbol,Int},Any}())
+    for (k, v) in keys_and_values
+        p[k] = v
+    end
+    for (k, v) in kwargs
+        p[k] = v
+    end
+    p
+end
+
+
+"""
+    @propdict (key1 = value1, key2 = (key3 = value3,), ...)
+
+Construct a [`PropDict`](@ref) from named-tuple syntax.
+
+Nested named-tuple literals become nested `PropDict`s:
+
+```julia
+p = @propdict (a = (b = 7, c = 5), e = "foo")
+p.a.b == 7
+```
+
+Like in named tuples, a nested single-entry literal needs a trailing
+comma (`(b = 7,)`) or semicolon form (`(; b = 7)`).
+"""
+macro propdict(expr)
+    _propdict_expr(expr)
+end
+export @propdict
+
+
+const _propdict_syntax_error = "@propdict expects named-tuple syntax like (a = 1, b = (c = 2,))"
+
+function _propdict_expr(@nospecialize ex)
+    isa(ex, Expr) || throw(ArgumentError(_propdict_syntax_error))
+
+    entries = if ex.head == :tuple
+        if length(ex.args) == 1 && isa(only(ex.args), Expr) && (only(ex.args)::Expr).head == :parameters
+            (only(ex.args)::Expr).args
+        else
+            ex.args
+        end
+    elseif ex.head == :(=)
+        [ex]
+    else
+        throw(ArgumentError(_propdict_syntax_error))
+    end
+
+    entry_pairs = map(entries) do entry
+        if !(isa(entry, Expr) && entry.head in (:(=), :kw) && isa(entry.args[1], Symbol))
+            throw(ArgumentError(_propdict_syntax_error))
+        end
+        k, v = entry.args[1], entry.args[2]
+        :($(QuoteNode(k)) => $(_is_namedtuple_expr(v) ? _propdict_expr(v) : esc(v)))
+    end
+
+    Expr(:call, PropDict, entry_pairs...)
+end
+
+function _is_namedtuple_expr(@nospecialize ex)
+    isa(ex, Expr) && ex.head == :tuple || return false
+    if length(ex.args) == 1 && isa(only(ex.args), Expr) && (only(ex.args)::Expr).head == :parameters
+        all(a -> isa(a, Expr) && a.head == :kw && isa(a.args[1], Symbol), (only(ex.args)::Expr).args)
+    else
+        !isempty(ex.args) && all(a -> isa(a, Expr) && a.head == :(=) && isa(a.args[1], Symbol), ex.args)
+    end
+end
 
 
 _dict(p::PropDict) = getfield(p, :_internal_dict)
