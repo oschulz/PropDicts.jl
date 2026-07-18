@@ -63,8 +63,10 @@ end
     pa = PropDict(da)
     @test parent(pa) === PropDicts._dict(pa)
 
-    @test @inferred(Dict(pa)) === parent(pa)
-    @test @inferred(Dict{Union{Symbol,Int},Any}(pa)) === parent(pa)
+    @test @inferred(Dict(pa)) == parent(pa)
+    @test Dict(pa) !== parent(pa)
+    @test @inferred(Dict{Union{Symbol,Int},Any}(pa)) == parent(pa)
+    @test Dict{Union{Symbol,Int},Any}(pa) !== parent(pa)
     @test @inferred(convert(Dict, pa)) === parent(pa)
     @test @inferred(convert(Dict{Union{Symbol,Int},Any}, pa)) === parent(pa)
 

@@ -145,8 +145,8 @@ _dict(p::PropDict) = getfield(p, :_internal_dict)
 
 Base.parent(p::PropDict) = _dict(p)
 
-Base.Dict(p::PropDict) = _dict(p)
-Base.Dict{Union{Symbol,Int},Any}(p::PropDict) = _dict(p)
+Base.Dict(p::PropDict) = copy(_dict(p))
+Base.Dict{Union{Symbol,Int},Any}(p::PropDict) = copy(_dict(p))
 
 
 is_props_dict_compatible(d::AbstractDict) = false
