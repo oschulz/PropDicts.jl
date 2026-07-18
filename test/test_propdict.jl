@@ -43,6 +43,17 @@ using Functors: fmap, functor
     @test collect(keys(PropDict("99999999999999999999" => 1))) == [Symbol("99999999999999999999")]
 
     @test_throws ArgumentError PropDict(Dict(2.5 => 1))
+
+    # Dicts inside arrays are converted, arrays without dicts are not copied:
+    pl = PropDict(:list => [Dict("a" => 1), Dict("b" => 2)])
+    @test pl.list isa AbstractVector
+    @test all(x -> x isa PropDict, pl.list)
+    @test pl.list[1].a == 1
+    v_num = [1.0, 2.0, 3.0]
+    @test PropDict(:x => v_num).x === v_num
+    v_ok = [PropDict(:a => 1)]
+    @test PropDict(:x => v_ok).x === v_ok
+    @test PropDict(:x => [[Dict("a" => 1)]]).x[1][1] isa PropDict
 end
 
 @testset "propdict" begin

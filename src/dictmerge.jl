@@ -50,14 +50,16 @@ end
 
 Remove entries with a value of `nothing` from `d`.
 
-Operates recursively on nested dicts if `recursive == true`.
+Operates recursively on nested dicts and arrays if `recursive == true`.
+Dicts inside arrays are trimmed, but array elements themselves are never
+removed since they are positional.
 """
 function trim_null! end
 
 
 function trim_null!(d::AbstractDict; recursive::Bool = true)
     for (k, v) in d
-        if isa(v, AbstractDict)
+        if isa(v, Union{AbstractDict,AbstractArray})
             if recursive
                 trim_null!(v, recursive = recursive)
             end
@@ -66,6 +68,17 @@ function trim_null!(d::AbstractDict; recursive::Bool = true)
         end
     end
     d
+end
+
+function trim_null!(A::AbstractArray; recursive::Bool = true)
+    if recursive
+        for v in A
+            if isa(v, Union{AbstractDict,AbstractArray})
+                trim_null!(v, recursive = recursive)
+            end
+        end
+    end
+    A
 end
 
 

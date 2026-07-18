@@ -155,10 +155,13 @@ is_props_dict_compatible(d::Dict{Union{Symbol,Int},Any}) = all(_is_compatible_va
 
 _is_compatible_value(@nospecialize x) = true
 _is_compatible_value(d::AbstractDict) = isa(d, PropDict)
+_is_compatible_value(A::AbstractArray) =
+    typeintersect(eltype(A), Union{AbstractDict,AbstractArray}) === Union{} || all(_is_compatible_value, A)
 
 
 _convert_value(x) = x
 _convert_value(d::AbstractDict) = PropDict(d)
+_convert_value(A::AbstractArray) = _is_compatible_value(A) ? A : map(_convert_value, A)
 
 
 _props_key(key::Symbol) = key
@@ -282,8 +285,12 @@ Read a [`PropDict`](@ref) from a single or multiple files.
 [JSON](https://github.com/JuliaIO/JSON.jl) resp.
 [YAML](https://github.com/JuliaData/YAML.jl) need to be loaded first.
 
+If the top level of a file is a sequence instead of a mapping, an array
+is returned instead of a `PropDict`. Dicts nested inside arrays are
+converted to `PropDict`s.
+
 If multiple files are given, they are merged into a single `PropDict` using
-`merge`.
+`merge`, all files must contain a mapping at the top level.
 
 `subst_pathvar` controls whether `\$_` should be substituted with the
 directory path of the/each file within string values (but not field
@@ -305,6 +312,10 @@ function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_e
     format = _format_from_filename(String(abs_filename))
     d = _read_from(Val(format), abs_filename)
 
+    if !isa(d, Union{AbstractDict,AbstractArray})
+        throw(ArgumentError("File \"$filename\" does not contain a mapping or sequence at the top level"))
+    end
+
     var_values = Dict{String,String}()
     if subst_pathvar
         var_values["_"] = dirname(abs_filename)
@@ -318,17 +329,21 @@ function readprops(filename::AbstractString; subst_pathvar::Bool = true, subst_e
         trim_null!(d)
     end
 
-    PropDict(d)
+    _convert_value(d)
 end
 
 function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = true, subst_env::Bool = true, trim_null::Bool = true)
     p = PropDict()
     for f in filenames
-        merge!(p, readprops(f, subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = false))
+        content = readprops(f, subst_pathvar = subst_pathvar, subst_env = subst_env, trim_null = false)
+        if !isa(content, PropDict)
+            throw(ArgumentError("Cannot merge file \"$f\" that does not contain a mapping at the top level"))
+        end
+        merge!(p, content)
     end
 
     if trim_null
-        trim_null!(_dict(p))
+        trim_null!(p)
     end
 
     p
@@ -365,10 +380,11 @@ import Base.read
 
 
 """
-    writeprops(io::IO, p::PropDict; multiline::Bool = true, indent::Int = -1)
-    writeprops(filename, p::PropDict; format = :JSON, multiline::Bool = true, indent::Int = -1)
+    writeprops(io::IO, p; format::Symbol = :JSON, multiline::Bool = true, indent::Int = -1)
+    writeprops(filename, p; format::Symbol = _format_from_filename(filename), multiline::Bool = true, indent::Int = -1)
 
-Write [`PropDict`](@ref) `p` to JSON file `filename`.
+Write a [`PropDict`](@ref) or an array of properties `p` to a file or an
+I/O stream.
 
 `writeprops` supports JSON and YAML files. Note that the Julia packages
 [JSON](https://github.com/JuliaIO/JSON.jl) resp.
@@ -381,17 +397,17 @@ Use `indent = -1` for default indentation in multiline mode.
 function writeprops end
 export writeprops
 
-function writeprops(io::IO, p::PropDict; format = :JSON, multiline::Bool = true, indent::Integer = -1)
+function writeprops(io::IO, p::Union{PropDict,AbstractArray}; format = :JSON, multiline::Bool = true, indent::Integer = -1)
     _write_to(Val(format), io, p, multiline, Int(indent))
 end
 
-function writeprops(filename::AbstractString, p::PropDict; format::Symbol = _format_from_filename(String(abspath(filename))), kwargs...)
+function writeprops(filename::AbstractString, p::Union{PropDict,AbstractArray}; format::Symbol = _format_from_filename(String(abspath(filename))), kwargs...)
     open(filename, "w") do io
         writeprops(io, p; format = format, kwargs...)
     end
 end
 
-function _write_to(fmt_val::Val, io::IO, p::PropDict, multiline::Bool, indent::Int)
+function _write_to(fmt_val::Val, io::IO, p, multiline::Bool, indent::Int)
     format = only(typeof(fmt_val).parameters)
     if format isa Symbol
         throw(ErrorException("Writing PropDicts to format $(format) requires package $format to be loaded, e.g. via `import $format`"))

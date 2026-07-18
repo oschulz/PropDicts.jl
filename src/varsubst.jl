@@ -144,7 +144,7 @@ function substitute_vars!(
     use_env::Bool = false, ignore_missing::Bool = false, recursive::Bool = true
 )
     for (k, v) in d
-        if isa(v, AbstractDict)
+        if isa(v, Union{AbstractDict,AbstractArray})
             if recursive
                 substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
             end
@@ -153,4 +153,21 @@ function substitute_vars!(
         end
     end
     d
+end
+
+function substitute_vars!(
+    A::AbstractArray, var_values::Dict{String,String} = Dict{String,String}();
+    use_env::Bool = false, ignore_missing::Bool = false, recursive::Bool = true
+)
+    for i in eachindex(A)
+        v = A[i]
+        if isa(v, Union{AbstractDict,AbstractArray})
+            if recursive
+                substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
+            end
+        elseif isa(v, AbstractString) && contains_vars(v)
+            A[i] = substitute_vars(v, var_values, use_env = use_env, ignore_missing = ignore_missing)
+        end
+    end
+    A
 end
