@@ -7,6 +7,14 @@ using PropDicts: deepmerge, deepmerge!
 
 using Functors: fmap, functor
 
+@testset "propdict construction" begin
+    # Nested dicts are always PropDicts, wrapping a compatible dict does not copy:
+    dc = Dict{Union{Symbol,Int},Any}(:a => Dict{Union{Symbol,Int},Any}(:b => 1))
+    @test PropDict(dc).a isa PropDict
+    dcc = Dict{Union{Symbol,Int},Any}(:a => PropDict(:b => 1))
+    @test PropDicts._dict(PropDict(dcc)) === dcc
+end
+
 @testset "propdict" begin
     da = Dict("foo" => 11, "bar" => Dict("baz" => 42), "44" => "abc")
     @test @inferred(PropDict(da)) isa PropDict
