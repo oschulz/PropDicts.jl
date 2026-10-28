@@ -3,7 +3,7 @@
 using PropDicts
 using Test
 
-using PropDicts: deepmerge, deepmerge!
+using PropDicts: deepmerge, deepmerge!, trim_null, trim_null!
 
 @testset "dictmerge" begin
     @testset "deepmerge" begin
@@ -97,5 +97,20 @@ using PropDicts: deepmerge, deepmerge!
         big = 2^53 + 1
         dn = deepmerge!(Dict{Symbol,Any}(:a => Dict(:x => big)), Dict(:a => Dict{Symbol,Float64}()))
         @test dn[:a][:x] === big
+    end
+
+    @testset "trim_null" begin
+        d = PropDict(:a => PropDict(:b => nothing, :c => 1), :d => nothing, :e => 2)
+        d_orig = deepcopy(d)
+
+        t = trim_null(d)
+        @test t == PropDict(:a => PropDict(:c => 1), :e => 2)
+        @test d == d_orig
+
+        t_shallow = trim_null(d, recursive = false)
+        @test t_shallow == PropDict(:a => PropDict(:b => nothing, :c => 1), :e => 2)
+
+        @test trim_null!(d) === d
+        @test d == PropDict(:a => PropDict(:c => 1), :e => 2)
     end
 end

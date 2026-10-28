@@ -132,6 +132,10 @@ end
 
     p.x = 5
     @test p.x == 5
+    @test p._internal_dict === PropDicts._dict(p)
+    @test convert(PropDict, p) === p
+    @test p[Int8(44)] == "abc"
+    @test !PropDicts.is_props_dict_compatible(Dict("a" => 1))
 
     @test p["a"] == 1
     @test haskey(p, "a")
@@ -163,11 +167,17 @@ end
     @test sizehint!(q, 100) === q
     @test empty!(q) === q && isempty(q)
     @test !isempty(p)
+
+    @test @inferred(empty(p, Union{Symbol,Int}, Any)) isa PropDict
 end
 
 @testset "missing properties" begin
     p = PropDict(:a => 1)
     m = p.q
+    @test m isa PropDicts.MissingProperty
+    @test PropDicts.MissingProperty(m) isa PropDicts.MissingProperty
+    @test m._internal_parent === p
+    @test m._internal_key == :q
     @test propertynames(m) == ()
     @test propertynames(m, true) == (:_internal_parent, :_internal_key)
 
@@ -176,6 +186,15 @@ end
     @test_throws KeyError m[2.5]
 
     @test sprint(show, p.q.r[33]) == "PropDicts.MissingProperty(<PropDict with 1 entry>.q.r[33])"
+
+    m.r = 42
+    @test p.q.r == 42
+
+    mg = p.gets
+    @test get!(mg, :k, 5) == 5
+    @test p.gets.k == 5
+    @test get!(p.gets2, :d, Dict("x" => 1)) isa PropDict
+    @test p.gets2.d.x == 1
 
     p2 = PropDict()
     p2.a.b["c"]["7"] = 11
