@@ -140,10 +140,14 @@ end
 @testset "missing properties" begin
     p = PropDict(:a => 1)
     m = p.q
+    @test propertynames(m) == ()
+    @test propertynames(m, true) == (:_internal_parent, :_internal_key)
 
     @test m["foo"] isa PropDicts.MissingProperty
     @test m[7] isa PropDicts.MissingProperty
     @test_throws KeyError m[2.5]
+
+    @test sprint(show, p.q.r[33]) == "PropDicts.MissingProperty(<PropDict with 1 entry>.q.r[33])"
 
     p2 = PropDict()
     p2.a.b["c"]["7"] = 11
