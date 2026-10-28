@@ -248,7 +248,7 @@ function readprops(filenames::Vector{<:AbstractString}; subst_pathvar::Bool = tr
     p
 end
 
-function _read_from(fmt_val::Val, io::IO)
+function _read_from(fmt_val::Val, source)
     format = only(typeof(fmt_val).parameters)
     if format isa Symbol
         throw(ErrorException("Reading PropDicts from format $format requires package $format to be loaded, e.g. via `import $format`"))
@@ -310,7 +310,7 @@ function _write_to(fmt_val::Val, io::IO, p::PropDict, multiline::Bool, indent::I
     if format isa Symbol
         throw(ErrorException("Writing PropDicts to format $(format) requires package $format to be loaded, e.g. via `import $format`"))
     else
-        throw(ArgumentError("Invalid output format `$format``, must be a symbol like `:JSON` or `:YAML`"))
+        throw(ArgumentError("Invalid output format `$format`, must be a symbol like `:JSON` or `:YAML`"))
     end
 end
 
