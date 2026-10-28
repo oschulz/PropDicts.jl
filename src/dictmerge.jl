@@ -1,22 +1,36 @@
 # This file is a part of PropDicts.jl, licensed under the MIT License (MIT).
 
 
+_promoted_keytype(K::Type) = K
+_promoted_keytype(K::Type, d::AbstractDict, others::AbstractDict...) =
+    _promoted_keytype(promote_type(K, keytype(d)), others...)
+
+_promoted_valtype(V::Type) = V
+_promoted_valtype(V::Type, d::AbstractDict, others::AbstractDict...) =
+    _promoted_valtype(promote_type(V, valtype(d)), others...)
+
+
+_merged_value(v) = v
+_merged_value(v::AbstractDict) = deepmerge(v)
+_merged_value(v::Base.ImmutableDict) = v
+
+
+"""
+    deepmerge!(d::AbstractDict, others::AbstractDict...)
+
+Merge `others` into `d` recursively: entries whose values are dicts on
+both sides are deep-merged, all other entries are overwritten.
+
+Dict values of `others` are copied. Other values, like arrays and immutable
+dicts like `Base.ImmutableDict`, are shared, including any dicts inside them.
+"""
 function deepmerge!(d::AbstractDict, others::AbstractDict...)
     for other in others
         for (k, v) in other
-            if haskey(d, k)
-                v_curr = d[k]
-                if isnothing(v_curr) || isnothing(v)
-                    d[k] = v
-                else
-                    if isa(v_curr, AbstractDict)
-                        deepmerge!(v_curr, v)
-                    else
-                        d[k] = v
-                    end
-                end
+            if haskey(d, k) && isa(d[k], AbstractDict) && isa(v, AbstractDict)
+                deepmerge!(d[k], v)
             else
-                d[k] = v
+                d[k] = _merged_value(v)
             end
         end
     end
@@ -24,11 +38,17 @@ function deepmerge!(d::AbstractDict, others::AbstractDict...)
 end
 
 
+"""
+    deepmerge(d::AbstractDict, others::AbstractDict...)
+
+Non-mutating version of [`deepmerge!`](@ref): returns a new dict, the
+inputs are left unchanged. As immutable dicts are shared, merging into one
+still changes the mutable dicts inside it.
+"""
 function deepmerge(d::AbstractDict, others::AbstractDict...)
-    K = Base.promoteK(keytype(d), others...)
-    V = Base.promoteV(valtype(d), others...)
-    result = empty(d, K, V)
-    deepmerge!(result, d, others...)
+    K = _promoted_keytype(keytype(d), others...)
+    V = _promoted_valtype(valtype(d), others...)
+    deepmerge!(empty(d, K, V), d, others...)
 end
 
 
