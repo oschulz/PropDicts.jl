@@ -52,6 +52,7 @@ using PropDicts: deepmerge, deepmerge!
         pm = merge(p, Dict(:a => Dict(:x => 9)))
         @test pm isa Dict && pm[:a] == Dict(:x => 9)
         @test p == PropDict(:a => PropDict(:x => 1, :y => 2))
+        @test deepmerge(p, Dict("a" => Dict("x" => 9))) == PropDict(:a => PropDict(:x => 9, :y => 2))
 
         # Immutable dicts are shared, PropDicts convert them:
         im = Base.ImmutableDict(:x => 1)

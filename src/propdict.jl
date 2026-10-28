@@ -193,6 +193,8 @@ Base.iterate(p::PropDict) = iterate(_dict(p))
 Base.iterate(p::PropDict, i) = iterate(_dict(p), i)
 
 
+deepmerge(p::PropDict, others::AbstractDict...) = deepmerge!(PropDict(), p, others...)
+
 Base.merge!(p::PropDict, others::PropDict...) = deepmerge!(p, others...)
 
 Base.merge(p::PropDict, others::PropDict...) = deepmerge(p, others...)
