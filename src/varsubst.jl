@@ -102,17 +102,17 @@ end
 
 
 function substitute_vars!(
-    d::AbstractDict, var_values::Dict{String,String} = Dict{String,String}();
+    c::Union{AbstractDict,AbstractArray}, var_values::Dict{String,String} = Dict{String,String}();
     use_env::Bool = false, ignore_missing::Bool = false, recursive::Bool = true
 )
-    for (k, v) in d
+    for (k, v) in pairs(c)
         if isa(v, AbstractDict)
             if recursive
                 substitute_vars!(v, var_values, use_env = use_env, ignore_missing = ignore_missing, recursive = recursive)
             end
         elseif isa(v, AbstractString) && contains_vars(v)
-            d[k] = substitute_vars(v, var_values, use_env = use_env, ignore_missing = ignore_missing)
+            c[k] = substitute_vars(v, var_values, use_env = use_env, ignore_missing = ignore_missing)
         end
     end
-    d
+    c
 end

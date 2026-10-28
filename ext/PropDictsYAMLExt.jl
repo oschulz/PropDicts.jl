@@ -7,7 +7,7 @@ import YAML
 
 PropDicts._read_from(::Val{:YAML}, filename::String) = YAML.load_file(filename)
 
-function PropDicts._write_to(::Val{:YAML}, io::IO, p::PropDict, multiline::Bool, indent::Int)
+function PropDicts._write_to(::Val{:YAML}, io::IO, p, multiline::Bool, indent::Int)
     indent_value = indent < 0 ? 2 : indent
     if !multiline
         throw(ArgumentError("YAML can only be written in multiple lines, `multiline = false` is not supported."))

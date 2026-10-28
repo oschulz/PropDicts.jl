@@ -132,6 +132,54 @@ import YAML
         end
     end
 
+    @testset "Top-level arrays" begin
+        mktempdir() do tmpdir
+            jsonfile = joinpath(tmpdir, "array.json")
+            open(jsonfile, "w") do io
+                write(io, """[{"value": 5, "path": "\$_/d", "n": null}, {"value": 6}, [1, {"x": 2, "n": null}]]""")
+            end
+
+            a = readprops(jsonfile)
+            @test a isa AbstractVector
+            @test a[1] isa PropDict
+            @test a[1][:value] == 5
+            @test normpath(a[1][:path]) == normpath(joinpath(tmpdir, "d"))
+            @test !haskey(a[1], :n)
+            @test a[3][2] == Dict("x" => 2, "n" => nothing)
+
+            yamlfile = joinpath(tmpdir, "array.yaml")
+            open(yamlfile, "w") do io
+                write(io, "- value: 5\n- value: 6\n")
+            end
+            ay = readprops(yamlfile)
+            @test ay isa AbstractVector
+            @test ay[2] == PropDict(:value => 6)
+
+            # Arrays round-trip through writeprops:
+            writeprops(joinpath(tmpdir, "array_out.json"), a)
+            @test readprops(joinpath(tmpdir, "array_out.json")) == a
+            writeprops(joinpath(tmpdir, "array_out.yaml"), ay)
+            @test readprops(joinpath(tmpdir, "array_out.yaml")) == ay
+
+            # Array files cannot be merged:
+            @test_throws ArgumentError readprops([jsonfile, jsonfile])
+
+            # Scalar top level is not supported:
+            scalarfile = joinpath(tmpdir, "scalar.json")
+            open(scalarfile, "w") do io
+                write(io, "42")
+            end
+            @test_throws ArgumentError readprops(scalarfile)
+
+            # Nested arrays are returned as read:
+            nestedfile = joinpath(tmpdir, "nested.json")
+            open(nestedfile, "w") do io
+                write(io, """{"a": [1, null, {"b": null, "c": "\$_"}]}""")
+            end
+            @test readprops(nestedfile)[:a] == [1, nothing, Dict("b" => nothing, "c" => raw"$_")]
+        end
+    end
+
     @testset "Format dispatch errors" begin
         io = IOBuffer()
         @test_throws ErrorException writeprops(io, p; format = :TOML)

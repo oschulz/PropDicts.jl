@@ -55,10 +55,12 @@ end
 
 """
     trim_null!(d::AbstractDict; recursive::Bool = true)
+    trim_null!(A::AbstractArray; recursive::Bool = true)
 
-Remove values equal to `nothing` from `d`.
+Remove entries with a value of `nothing` from `d`, resp. from the dicts
+in `A`.
 
-Operates recursively on values in `d` if `recursive == true`.
+Operates recursively on nested dicts if `recursive == true`.
 """
 function trim_null! end
 
@@ -69,11 +71,20 @@ function trim_null!(d::AbstractDict; recursive::Bool = true)
             if recursive
                 trim_null!(v, recursive = recursive)
             end
-        elseif typeof(v) == Nothing
+        elseif v === nothing
             delete!(d, k)
         end
     end
     d
+end
+
+function trim_null!(A::AbstractArray; recursive::Bool = true)
+    for v in A
+        if isa(v, AbstractDict)
+            trim_null!(v, recursive = recursive)
+        end
+    end
+    A
 end
 
 
