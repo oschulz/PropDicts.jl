@@ -73,12 +73,21 @@ using Test
     PropDicts.substitute_vars!(d_esc, Dict("x" => "1"))
     @test d_esc == Dict("a" => raw"\$x", "b" => raw"\\1")
 
-    # In-place substitution recurses into dicts, but not into arrays:
+    # In-place substitution in dicts and arrays recurses into dicts, but not
+    # into nested arrays:
     d = Dict("a" => raw"$x", "b" => Dict("c" => raw"${x}y"), "d" => [raw"$x", Dict("e" => raw"$x")])
     PropDicts.substitute_vars!(d, Dict("x" => "1"))
     @test d == Dict("a" => "1", "b" => Dict("c" => "1y"), "d" => [raw"$x", Dict("e" => raw"$x")])
 
+    A = Any[raw"$x", 1, Dict("e" => raw"$x"), Any[raw"$x"]]
+    PropDicts.substitute_vars!(A, Dict("x" => "1"))
+    @test A == Any["1", 1, Dict("e" => "1"), Any[raw"$x"]]
+
     d2 = Dict("a" => raw"$x", "b" => Dict("c" => raw"$x"))
     PropDicts.substitute_vars!(d2, Dict("x" => "1"), recursive = false)
     @test d2 == Dict("a" => "1", "b" => Dict("c" => raw"$x"))
+
+    A2 = Any[raw"$x", Dict("e" => raw"$x")]
+    PropDicts.substitute_vars!(A2, Dict("x" => "1"), recursive = false)
+    @test A2 == Any["1", Dict("e" => raw"$x")]
 end

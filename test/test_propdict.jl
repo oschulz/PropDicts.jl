@@ -43,6 +43,12 @@ using Functors: fmap, functor
     @test collect(keys(PropDict("99999999999999999999" => 1))) == [Symbol("99999999999999999999")]
 
     @test_throws ArgumentError PropDict(Dict(2.5 => 1))
+
+    # Arrays are stored as they are, also if they contain dicts:
+    v_num = [1.0, 2.0, 3.0]
+    @test PropDict(:x => v_num).x === v_num
+    v_dicts = [Dict("a" => 1)]
+    @test PropDict(:x => v_dicts).x === v_dicts
 end
 
 @testset "propdict" begin
