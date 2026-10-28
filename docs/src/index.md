@@ -4,7 +4,7 @@ PropDicts implements dictionaries that handle hierarchical property/value
 data.
 
 [`PropDict`](@ref) is a special kind of `AbstractDict` that supports deep merging.
-A typicial use case is cascading-configuration: A basic configuration
+A typical use case is cascading-configuration: A basic configuration
 can be modified by additional configuration `PropDict`s that only replace,
 amend or remove specific parts of it.
 
@@ -25,3 +25,12 @@ to refer to environment variables and application-specific variables in
 configuration data.
 
 Reading/writing from/to JSON and YAML is supported as well.
+
+## Related packages
+
+[PropertyDicts.jl](https://github.com/JuliaCollections/PropertyDicts.jl)
+provides a light-weight property-access wrapper around arbitrary
+dictionaries. In contrast, `PropDict` is a concrete dict type geared
+towards hierarchical configuration data, adding deep merging, `null`
+handling, variable substitution, auto-creation of nested entries and
+file I/O.
