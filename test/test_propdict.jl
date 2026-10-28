@@ -8,6 +8,28 @@ using PropDicts: deepmerge, deepmerge!
 using Functors: fmap, functor
 
 @testset "propdict construction" begin
+    @test PropDict() isa PropDict
+    @test isempty(PropDict())
+
+    @test PropDict(a = 1, b = PropDict(c = 2)) == PropDict(:a => 1, :b => PropDict(:c => 2))
+    @test PropDict(:a => 1; b = 2) == PropDict(:a => 1, :b => 2)
+    @test PropDict(a = Dict("x" => 1)).a isa PropDict
+
+    x = 42
+    p = @propdict (a = (b = 7, c = 5), e = "foo", f = x)
+    @test p == PropDict(:a => PropDict(:b => 7, :c => 5), :e => "foo", :f => 42)
+    @test p.a isa PropDict
+    @test (@propdict (a = 1)) == PropDict(:a => 1)
+    @test (@propdict (a = (b = 1,),)).a.b == 1
+    @test (@propdict (; a = 1, b = (; c = 2))).b.c == 2
+    @test isempty(@propdict ())
+    @test isempty(@propdict (;))
+    @test (@propdict (a = x + 1, b = (c = [1, 2, 3],))) ==
+        PropDict(:a => 43, :b => PropDict(:c => [1, 2, 3]))
+    @test_throws ArgumentError PropDicts._propdict_expr(:([1, 2]))
+    @test_throws ArgumentError PropDicts._propdict_expr(:((1, 2)))
+    @test_throws ArgumentError PropDicts._propdict_expr(42)
+
     # Nested dicts are always PropDicts, wrapping a compatible dict does not copy:
     dc = Dict{Union{Symbol,Int},Any}(:a => Dict{Union{Symbol,Int},Any}(:b => 1))
     @test PropDict(dc).a isa PropDict
