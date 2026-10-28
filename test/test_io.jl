@@ -132,6 +132,14 @@ import YAML
         end
     end
 
+    @testset "Format dispatch errors" begin
+        io = IOBuffer()
+        @test_throws ErrorException writeprops(io, p; format = :TOML)
+        @test_throws ArgumentError writeprops(io, p; format = 42)
+        @test_throws ErrorException PropDicts._read_from(Val(:TOML), "/no/such/file.toml")
+        @test_throws ArgumentError PropDicts._read_from(Val(42), "/no/such/file.json")
+    end
+
     @testset "Unsupported format" begin
         mktempdir() do tmpdir
             txtfile = joinpath(tmpdir, "test.txt")
