@@ -5,6 +5,7 @@ import Test
 Test.@testset "Package PropDicts" begin
     include("test_aqua.jl")
     include("test_varsubst.jl")
+    include("test_dictmerge.jl")
     include("test_propdict.jl")
     include("test_io.jl")
     include("test_docs.jl")
