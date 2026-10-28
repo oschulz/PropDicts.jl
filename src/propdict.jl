@@ -4,7 +4,8 @@
 """
     PropDict <: AbstractDict{Union{Symbol,Int},Any}
 
-PropDicts is a dictionary for that supports
+A dictionary with `Symbol` and `Int` keys that supports property-based
+access and deep merging.
 
 Constructors:
 
@@ -21,7 +22,7 @@ represent an integer become `Int`s, other string keys become `Symbol`s. The
 same conversion is applied when getting, setting or deleting entries. Values
 that are dicts are converted to `PropDict`s.
 
-`PropDict` support deep merging:
+`PropDict`s support deep merging:
 ```julia
 x = PropDict(:a => PropDict(:b => 7, :c => 5, :d => 2), :e => "foo")
 y = PropDict(:a => PropDict(:c => 42, :d => nothing), :f => "bar")
@@ -39,8 +40,8 @@ PropDicts.trim_null!(z)
 )
 ```
 
-Acessing non-existing properties will return instances of
-[`PropDicts.MissingProperty`](@ref)). When setting the value of missing
+Accessing non-existing properties will return instances of
+[`PropDicts.MissingProperty`](@ref). When setting the value of missing
 properties, parent `PropDict`s are created automatically:
 
 ```julia
@@ -417,8 +418,8 @@ end
 """
     struct MissingProperty
 
-An instance MissingProperty(parent, key::Symbol) represents the fact the `key`
-is missing in `parent`.
+An instance `MissingProperty(parent, key::Union{Symbol,Int})` represents the
+fact that `key` is missing in `parent`.
 
 Instances of `MissingProperty` support `setindex!` and `setproperty!`, this
 will create the `key` in `parent` as a [`PropDict`](@ref).

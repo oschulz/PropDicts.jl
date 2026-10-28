@@ -88,5 +88,10 @@ function trim_null!(A::AbstractArray; recursive::Bool = true)
 end
 
 
+"""
+    trim_null(d::AbstractDict; recursive::Bool = true)
+
+Non-mutating version of [`trim_null!`](@ref), operates on a deep copy of `d`.
+"""
 trim_null(d::AbstractDict; recursive::Bool = true) =
     trim_null!(deepcopy(d), recursive = recursive)
