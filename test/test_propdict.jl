@@ -13,6 +13,14 @@ using Functors: fmap, functor
     @test PropDict(dc).a isa PropDict
     dcc = Dict{Union{Symbol,Int},Any}(:a => PropDict(:b => 1))
     @test PropDicts._dict(PropDict(dcc)) === dcc
+
+    # Numeric string keys become Int keys:
+    @test collect(keys(PropDict("007" => 1))) == [7]
+    @test collect(keys(PropDict("+5" => 1))) == [5]
+    @test collect(keys(PropDict("-3" => 1))) == [-3]
+    @test collect(keys(PropDict("99999999999999999999" => 1))) == [Symbol("99999999999999999999")]
+
+    @test_throws ArgumentError PropDict(Dict(2.5 => 1))
 end
 
 @testset "propdict" begin
@@ -95,6 +103,14 @@ end
     p.x = 5
     @test p.x == 5
 
+    @test p["a"] == 1
+    @test haskey(p, "a")
+    @test !haskey(p, "nope")
+    @test_throws KeyError p[2.5]
+    @test get(p, 2.5, :dflt) == :dflt
+    @test get(p, typemax(UInt), :dflt) == :dflt
+    @test !haskey(p, typemax(UInt))
+
     @test get(() -> 7, p, :nope) == 7
     @test get(() -> 7, p, :a) == 1
     r = get!(() -> Dict("y" => 2), p, :g)
@@ -102,12 +118,13 @@ end
     @test get!(p, :h, Dict("z" => 3)) isa PropDict
     @test p.h.z == 3
 
+    @test getkey(p, "a", nothing) == :a
     @test getkey(p, :nope, nothing) === nothing
 
     @test pop!(p, :x) == 5
     @test pop!(p, :x, :dflt) == :dflt
     @test_throws KeyError pop!(p, :x)
-    @test delete!(p, 44) === p
+    @test delete!(p, "44") === p
     @test !haskey(p, 44)
 
     q = copy(p)
@@ -116,4 +133,17 @@ end
     @test sizehint!(q, 100) === q
     @test empty!(q) === q && isempty(q)
     @test !isempty(p)
+end
+
+@testset "missing properties" begin
+    p = PropDict(:a => 1)
+    m = p.q
+
+    @test m["foo"] isa PropDicts.MissingProperty
+    @test m[7] isa PropDicts.MissingProperty
+    @test_throws KeyError m[2.5]
+
+    p2 = PropDict()
+    p2.a.b["c"]["7"] = 11
+    @test p2.a.b.c[7] == 11
 end
